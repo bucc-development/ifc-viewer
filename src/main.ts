@@ -188,8 +188,9 @@ import './style.css';
       }
 
       try {
+        console.log('Received message:', event);
         if (event.data instanceof ArrayBuffer) {
-          console.log('Received ArrayBuffer from SharePoint');
+          console.log('Received ArrayBuffer, creating IFC load event...');
           const loadEvent = new CustomEvent('ifcLoadEvent', {
             detail: {
               name: 'openModel',
