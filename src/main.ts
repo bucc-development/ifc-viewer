@@ -9,6 +9,7 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
+import './style.css';
 
 // Initialize application
 (async () => {
