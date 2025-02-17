@@ -5,34 +5,30 @@ export default defineConfig({
   base: '/ifc-viewer/',
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     assetsDir: 'assets',
     sourcemap: true,
-    target: 'esnext',
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html')
-      },
+      input: resolve(__dirname, 'index.html'),
       output: {
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]',
         manualChunks: {
           'three': ['three'],
           'web-ifc': ['web-ifc'],
-          'components': ['@thatopen/components', '@thatopen/components-front']
+          'components': [
+            '@thatopen/components',
+            '@thatopen/components-front',
+            '@thatopen/fragments',
+            '@thatopen/ui',
+            '@thatopen/ui-obc'
+          ]
         }
       }
     }
   },
-  server: {
-    port: 3000,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp'
-    }
-  },
   optimizeDeps: {
     include: ['three', 'web-ifc']
-  },
-  esbuild: {
-    target: 'esnext'
   }
 })
