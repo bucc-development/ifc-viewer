@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
-    target: 'esnext',  // Added this to support modern features
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -16,7 +16,8 @@ export default defineConfig({
           'components': ['@thatopen/components', '@thatopen/components-front']
         }
       }
-    }
+    },
+    cssCodeSplit: false
   },
   server: {
     port: 3000,
@@ -30,6 +31,12 @@ export default defineConfig({
     include: ['three', 'web-ifc']
   },
   esbuild: {
-    target: 'esnext'  // Added this to support modern features
+    target: 'esnext'
+  },
+  css: {
+    // Ensure CSS modules are handled correctly
+    modules: {
+      localsConvention: 'camelCase'
+    }
   }
 })
