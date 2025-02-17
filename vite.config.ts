@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { defineConfig } from 'vite'
 
 export default defineConfig({
@@ -14,10 +13,15 @@ export default defineConfig({
           'three': ['three'],
           'web-ifc': ['web-ifc'],
           'components': ['@thatopen/components', '@thatopen/components-front']
-        }
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'style.css') return 'assets/style.[hash].css';
+          return 'assets/[name].[hash][extname]';
+        },
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js'
       }
-    },
-    cssCodeSplit: false
+    }
   },
   server: {
     port: 3000,
@@ -32,11 +36,5 @@ export default defineConfig({
   },
   esbuild: {
     target: 'esnext'
-  },
-  css: {
-    // Ensure CSS modules are handled correctly
-    modules: {
-      localsConvention: 'camelCase'
-    }
   }
 })

@@ -1,14 +1,31 @@
-<!doctype html>
-<html lang="en">
-
+<!DOCTYPE html>
+<html lang="en" class="bim-ui-light">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BUCC App</title>
-  <link rel="stylesheet" href="/src/styles.css">
-</head>
+  <title>BUCC IFC Viewer</title>
+  <style>
+    * {
+      margin: 0;
+    }
 
+    body {
+      height: 100vh;
+    }
+
+    html {
+      font-family: sans-serif;
+    }
+
+    bim-grid:not([floating]) > bim-panel {
+      border-radius: 0;
+    }
+
+    bim-grid[floating] > bim-toolbar {
+      justify-self: center;
+    }
+  </style>
+</head>
 <body>
   <bim-grid id="app"></bim-grid>
   <script type="module" src="/src/main.ts"></script>
