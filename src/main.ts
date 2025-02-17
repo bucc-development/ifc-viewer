@@ -90,19 +90,6 @@ world.camera.controls.addEventListener("rest", () => {
   tilesLoader.culler.needsUpdate = true;
 });
 
-window.addEventListener("ifcLoadEvent", async (event: any) => {
-  const { name, payload } = event.detail;
-  if (name === "openModel") {
-    const { name, buffer } = payload;
-    console.log("This is the buffer to viewer:", buffer);
-    const model = await ifcLoader.load(buffer, name);
-    console.log("Here should be a model:",model);
-    const scene = world.scene.three;
-    scene.add(model);
-  }
-});
-
-
 fragments.onFragmentsLoaded.add(async (model) => {
   if (model.hasProperties) {
     await indexer.process(model);
@@ -124,6 +111,50 @@ fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
   for (const fragmentID of fragmentIDs) {
     const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
     if (mesh) world.meshes.delete(mesh);
+  }
+});
+
+// Add message event listener for SharePoint communication
+window.addEventListener('message', async (event) => {
+  // Validate origin for security (replace with your SharePoint domain)
+  const allowedOrigins = [
+    'https://buccbv.sharepoint.com/',
+    'https://localhost:4321'  // For local development
+  ];
+  
+  if (!allowedOrigins.includes(event.origin)) {
+    console.warn('Unauthorized origin:', event.origin);
+    return;
+  }
+
+  try {
+    if (event.data instanceof ArrayBuffer) {
+      // Create and dispatch IFC load event
+      const loadEvent = new CustomEvent('ifcLoadEvent', {
+        detail: {
+          name: 'openModel',
+          payload: {
+            name: 'SharePointModel',
+            buffer: event.data
+          }
+        }
+      });
+      window.dispatchEvent(loadEvent);
+    }
+  } catch (error) {
+    console.error('Error processing message:', error);
+  }
+}, false);
+
+// Keep your existing event listener
+window.addEventListener("ifcLoadEvent", async (event: any) => {
+  const { name, payload } = event.detail;
+  if (name === "openModel") {
+    const { name, buffer } = payload;
+    console.log("Received IFC buffer:", buffer);
+    const model = await ifcLoader.load(buffer, name);
+    const scene = world.scene.three;
+    scene.add(model);
   }
 });
 
