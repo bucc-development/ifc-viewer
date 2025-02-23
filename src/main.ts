@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
@@ -9,20 +10,28 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
-import './style.css';
+import { setupBCF } from "./components/BCF/setup";
+import { createTopicPanel } from "./components/BCF/TopicPanel";
+import { createTopicForm } from "./components/BCF/TopicForm";
+import { createBCFPanel } from "./components/BCF/BCFPanel";
+import "./style.css";
 
-// Initialize application
 (async () => {
   try {
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    document.documentElement.className = prefersDark
+      ? "bim-ui-dark"
+      : "bim-ui-light";
 
-    // Set initial theme based on system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.className = prefersDark ? 'bim-ui-dark' : 'bim-ui-light';
-
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      document.documentElement.className = e.matches ? 'bim-ui-dark' : 'bim-ui-light';
-    });
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", (e) => {
+        document.documentElement.className = e.matches
+          ? "bim-ui-dark"
+          : "bim-ui-light";
+      });
 
     await BUI.Manager.init();
 
@@ -73,7 +82,8 @@ import './style.css';
     postproduction.customEffects.lineColor = 0x17191c;
 
     const appManager = components.get(AppManager);
-    const viewportGrid = viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
+    const viewportGrid =
+      viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
     appManager.grids.set("viewport", viewportGrid);
 
     const fragments = components.get(OBC.FragmentsManager);
@@ -85,7 +95,7 @@ import './style.css';
     await ifcLoader.setup();
 
     const tilesLoader = components.get(OBF.IfcStreamer);
-    tilesLoader.url = "./resources/tiles/";  // Updated path
+    tilesLoader.url = "./resources/tiles/"; // Updated path
     tilesLoader.world = world;
     tilesLoader.culler.threshold = 10;
     tilesLoader.culler.maxHiddenTime = 1000;
@@ -104,10 +114,23 @@ import './style.css';
       tilesLoader.culler.needsUpdate = true;
     });
 
-    // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
 
+    const topics = setupBCF(components, world);
+
+    const { topicsModal } = createTopicForm(components);
+    const { bcfPanel, topicsList, updateTopicsList } = createBCFPanel(components, topicsModal);
+    const { topicPanel, updateTopicPanel } = createTopicPanel(components, world);
+
+    updateTopicsList({
+      onTopicEnter: (topic) => {
+        updateTopicPanel(topic);
+      },    
+    });
+
+    topics.list.onItemUpdated.add((item) => updateTopicPanel(item.value));
+    
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
@@ -131,6 +154,19 @@ import './style.css';
       `;
     });
 
+    const rightPanel = BUI.Component.create(() => {
+      return BUI.html`
+        <bim-tabs switchers-full>
+          <bim-tab name="bcf" label="BCF" icon="material-symbols:task">
+            ${bcfPanel}
+          </bim-tab>
+          <bim-tab name="topic" label="Topic Details" icon="ph:info-bold">
+            ${topicPanel}
+          </bim-tab>
+        </bim-tabs>
+      `;
+    });
+
     const app = document.getElementById("app") as BUI.Grid;
     if (!app) {
       throw new Error("App element not found");
@@ -139,12 +175,13 @@ import './style.css';
     app.layouts = {
       main: {
         template: `
-          "leftPanel viewport" 1fr
-          /26rem 1fr
+          "leftPanel viewport rightPanel" 1fr
+          /26rem 1fr 26rem
         `,
         elements: {
           leftPanel,
           viewport,
+          rightPanel
         },
       },
     };
@@ -158,7 +195,9 @@ import './style.css';
           "toolbar" auto
           /1fr
         `,
-        elements: { toolbar },
+        elements: { 
+          toolbar 
+        },
       },
       second: {
         template: `
@@ -168,42 +207,41 @@ import './style.css';
         `,
         elements: {
           toolbar,
-          elementDataPanel,
+          elementDataPanel
         },
       },
     };
 
     viewportGrid.layout = "main";
 
-    // Set up event handlers for SharePoint integration
-    window.addEventListener('message', async (event) => {
+    window.addEventListener("message", async (event) => {
       const allowedOrigins = [
-        'https://buccbv.sharepoint.com',
-        'https://localhost:4321'
+        "https://buccbv.sharepoint.com",
+        "https://localhost:4321",
       ];
-      
+
       if (!allowedOrigins.includes(event.origin)) {
-        console.warn('Unauthorized origin:', event.origin);
+        console.warn("Unauthorized origin:", event.origin);
         return;
       }
 
       try {
-        console.log('Received message:', event);
+        console.log("Received message:", event);
         if (event.data instanceof ArrayBuffer) {
-          console.log('Received ArrayBuffer, creating IFC load event...');
-          const loadEvent = new CustomEvent('ifcLoadEvent', {
+          console.log("Received ArrayBuffer, creating IFC load event...");
+          const loadEvent = new CustomEvent("ifcLoadEvent", {
             detail: {
-              name: 'openModel',
+              name: "openModel",
               payload: {
-                name: 'SharePointModel',
-                buffer: event.data
-              }
-            }
+                name: "SharePointModel",
+                buffer: event.data,
+              },
+            },
           });
           window.dispatchEvent(loadEvent);
         }
       } catch (error) {
-        console.error('Error processing message:', error);
+        console.error("Error processing message:", error);
       }
     });
 
@@ -221,7 +259,6 @@ import './style.css';
       }
     });
 
-    // Initialize fragment handlers
     fragments.onFragmentsLoaded.add(async (model) => {
       if (model.hasProperties) {
         await indexer.process(model);
@@ -246,9 +283,7 @@ import './style.css';
       }
     });
 
-    // Trigger initial resize
-    window.dispatchEvent(new Event('resize'));
-
+    window.dispatchEvent(new Event("resize"));
   } catch (error) {
     console.error("Application initialization error:", error);
   }
