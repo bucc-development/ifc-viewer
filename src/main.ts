@@ -10,7 +10,8 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
-import SimpleQTO from "./bim-components/SimpleQTO";
+import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
+import { qtoTool } from "./bim-components/SimpleQTO copy/src/Template";
 
 import "./style.css";
 
@@ -118,7 +119,6 @@ import "./style.css";
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
-    const qtoPanel = SimpleQTO(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -134,6 +134,13 @@ import "./style.css";
     });
 
     const onShowQuantity = async () => {
+      if (!components) return;
+
+      const highlighter = components.get(OBF.Highlighter);
+      const selection = highlighter.selection.select;
+      const simpleQto = components.get(SimpleQTO);
+      await simpleQto.sumQuantities(selection);
+
       if (!viewportGrid) {
         console.warn("QTO panel not ready yet");
         return;
@@ -144,6 +151,22 @@ import "./style.css";
         viewportGrid.layout = "main";
       }
     };
+
+    const qtoTable = qtoTool({ components });
+    const qtoPanel = BUI.Component.create<BUI.Panel>(() => {
+      return BUI.html`
+        <bim-panel>
+            <bim-panel-section
+             name="qto"
+             label="Quantities"
+             icon="solar:document-bold"
+             fixed
+            >
+                ${qtoTable}
+            </bim-panel-section>
+        </bim-panel>
+      `;
+    });
 
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
