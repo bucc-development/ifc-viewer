@@ -9,20 +9,30 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
-import './style.css';
+import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
+
+import "./style.css";
+import QTO from "./components/Panels/QTO";
 
 // Initialize application
 (async () => {
   try {
-
     // Set initial theme based on system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.className = prefersDark ? 'bim-ui-dark' : 'bim-ui-light';
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    document.documentElement.className = prefersDark
+      ? "bim-ui-dark"
+      : "bim-ui-light";
 
     // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      document.documentElement.className = e.matches ? 'bim-ui-dark' : 'bim-ui-light';
-    });
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", (e) => {
+        document.documentElement.className = e.matches
+          ? "bim-ui-dark"
+          : "bim-ui-light";
+      });
 
     await BUI.Manager.init();
 
@@ -73,7 +83,8 @@ import './style.css';
     postproduction.customEffects.lineColor = 0x17191c;
 
     const appManager = components.get(AppManager);
-    const viewportGrid = viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
+    const viewportGrid =
+      viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
     appManager.grids.set("viewport", viewportGrid);
 
     const fragments = components.get(OBC.FragmentsManager);
@@ -85,7 +96,7 @@ import './style.css';
     await ifcLoader.setup();
 
     const tilesLoader = components.get(OBF.IfcStreamer);
-    tilesLoader.url = "./resources/tiles/";  // Updated path
+    tilesLoader.url = "./resources/tiles/"; // Updated path
     tilesLoader.world = world;
     tilesLoader.culler.threshold = 10;
     tilesLoader.culler.maxHiddenTime = 1000;
@@ -107,16 +118,7 @@ import './style.css';
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
-
-    const toolbar = BUI.Component.create(() => {
-      return BUI.html`
-        <bim-toolbar>
-          ${load(components)}
-          ${camera(world)}
-          ${selection(components, world)}
-        </bim-toolbar>
-      `;
-    });
+    const qtoPanel = QTO(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -128,6 +130,44 @@ import './style.css';
             ${settings(components)}
           </bim-tab>
         </bim-tabs> 
+      `;
+    });
+
+    const onShowQuantity = async () => {
+      if (!components) return;
+
+      const highlighter = components.get(OBF.Highlighter);
+      const selection = highlighter.selection.select;
+      const simpleQto = components.get(SimpleQTO);
+      await simpleQto.sumQuantities(selection);
+
+      if (!viewportGrid) {
+        console.warn("QTO panel not ready yet");
+        return;
+      }
+      if (viewportGrid.layout !== "qtos") {
+        viewportGrid.layout = "qtos";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
+
+    const toolbar = BUI.Component.create(() => {
+      return BUI.html`
+        <bim-toolbar>
+          ${load(components)}
+          ${camera(world)}
+          ${selection(components, world)}
+          <bim-toolbar-section label="Quantities" icon="solar:import-bold">
+            <bim-button 
+            label="Total Quantities"
+            tooltip-title="Sum quantities" 
+            tooltip-text="Adds up the quantities of the selected elements"
+            icon="mdi:summation"
+            @click=${onShowQuantity}
+            ></bim-button>
+          </bim-toolbar-section>
+        </bim-toolbar>
       `;
     });
 
@@ -171,39 +211,50 @@ import './style.css';
           elementDataPanel,
         },
       },
+      qtos: {
+        template: `
+          "empty qtoPanel" 1fr
+          "toolbar qtoPanel" auto
+          /1fr 24rem
+        `,
+        elements: {
+          toolbar,
+          qtoPanel,
+        },
+      },
     };
 
     viewportGrid.layout = "main";
 
     // Set up event handlers for SharePoint integration
-    window.addEventListener('message', async (event) => {
+    window.addEventListener("message", async (event) => {
       const allowedOrigins = [
-        'https://buccbv.sharepoint.com',
-        'https://localhost:4321'
+        "https://buccbv.sharepoint.com",
+        "https://localhost:4321",
       ];
-      
+
       if (!allowedOrigins.includes(event.origin)) {
-        console.warn('Unauthorized origin:', event.origin);
+        console.warn("Unauthorized origin:", event.origin);
         return;
       }
 
       try {
-        console.log('Received message:', event);
+        console.log("Received message:", event);
         if (event.data instanceof ArrayBuffer) {
-          console.log('Received ArrayBuffer, creating IFC load event...');
-          const loadEvent = new CustomEvent('ifcLoadEvent', {
+          console.log("Received ArrayBuffer, creating IFC load event...");
+          const loadEvent = new CustomEvent("ifcLoadEvent", {
             detail: {
-              name: 'openModel',
+              name: "openModel",
               payload: {
-                name: 'SharePointModel',
-                buffer: event.data
-              }
-            }
+                name: "SharePointModel",
+                buffer: event.data,
+              },
+            },
           });
           window.dispatchEvent(loadEvent);
         }
       } catch (error) {
-        console.error('Error processing message:', error);
+        console.error("Error processing message:", error);
       }
     });
 
@@ -247,8 +298,7 @@ import './style.css';
     });
 
     // Trigger initial resize
-    window.dispatchEvent(new Event('resize'));
-
+    window.dispatchEvent(new Event("resize"));
   } catch (error) {
     console.error("Application initialization error:", error);
   }
