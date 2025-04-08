@@ -32,7 +32,7 @@ export const customTreeTemplate = (state: CustomTreeUIState) => {
 
   // Apply data transform with proper typing
   table.dataTransform = {
-    Entity: (value: string | number | boolean, data: BUI.TableRowData) => {
+    Entity: (value: string | number | boolean) => {
       if (typeof value === "string") return value || "Unnamed";
       if (typeof value === "number") return value.toString();
       return value ? "Yes" : "No";

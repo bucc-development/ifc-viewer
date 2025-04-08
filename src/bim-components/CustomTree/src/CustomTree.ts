@@ -84,6 +84,17 @@ export class CustomTree extends OBC.Component implements OBC.Disposable {
       { expressID: number; name?: string; level?: string }[]
     > = {};
     const indexer = this.components.get(OBC.IfcRelationsIndexer);
+
+    try {
+      // Process the model if not already indexed
+      if (!indexer.relationMaps[model.uuid]) {
+        await indexer.process(model);
+      }
+    } catch (error) {
+      console.error("Failed to index model relationships:", error);
+      return {};
+    }
+
     const inverseAttributes = this._state.inverseAttributes || [
       "IsDecomposedBy",
       "ContainsElements",
