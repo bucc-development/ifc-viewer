@@ -25,6 +25,7 @@ export const qtoTool = (state: QTOUIState) => {
       }
       return value;
     },
+    Unit: (value: string | number | boolean) => value || "-",
   };
 
   simpleQto.table = qtoTable;
