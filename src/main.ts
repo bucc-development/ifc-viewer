@@ -245,7 +245,7 @@ import { CustomTree } from "./bim-components/CustomTree";
       second: {
         template: `
           "empty elementDataPanel" 1fr
-          "toolbar elementDataPanel" auto
+          "toolbar toolbar" auto
           /1fr 24rem
         `,
         elements: {
@@ -256,7 +256,7 @@ import { CustomTree } from "./bim-components/CustomTree";
       qtos: {
         template: `
           "empty qtoPanel" 1fr
-          "toolbar qtoPanel" auto
+          "toolbar toolbar" auto
           /1fr 24rem
         `,
         elements: {
@@ -267,7 +267,7 @@ import { CustomTree } from "./bim-components/CustomTree";
       customTree: {
         template: `
           "empty customTreePanel" 1fr
-          "toolbar customTreePanel" auto
+          "toolbar toolbar" auto
           /1fr 24rem
         `,
         elements: {
