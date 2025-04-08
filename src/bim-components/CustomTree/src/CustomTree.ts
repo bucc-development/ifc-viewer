@@ -1,11 +1,9 @@
 import * as FRAGS from "@thatopen/fragments";
-import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+import * as OBC from "@thatopen/components";
 import * as WEBIFC from "web-ifc";
 
-export interface EntityTypeTreeUIState {
-  components: OBC.Components;
+export interface CustomTreeState {
   models: Iterable<FRAGS.FragmentsGroup>;
   selectHighlighterName?: string;
   hoverHighlighterName?: string;
@@ -13,302 +11,271 @@ export interface EntityTypeTreeUIState {
   expressID?: number;
 }
 
-// Helper function to find the level of an entity
-const findEntityLevel = async (
-  model: FRAGS.FragmentsGroup,
-  expressID: number,
-): Promise<string> => {
-  // Get current entity properties
-  const entityAttrs = await model.getProperties(expressID);
-  if (!entityAttrs) return "Unknown";
+export class CustomTree extends OBC.Component implements OBC.Disposable {
+  static uuid = "bc7bbfff-1e0b-4baa-9e07-78a2ef5cb56c";
+  enabled = true;
+  onDisposed = new OBC.Event();
+  table?: BUI.Table;
 
-  // Check if this is a storey
-  if (entityAttrs.type === WEBIFC.IFCBUILDINGSTOREY) {
-    return entityAttrs.Name?.value || "Unknown Level";
-  }
-
-  // If we find a level property, use it
-  if (entityAttrs.ContainedInStructure?.value?.[0]?.RelatingStructure?.value) {
-    const storeyID =
-      entityAttrs.ContainedInStructure.value[0].RelatingStructure.value;
-    const storeyProps = await model.getProperties(storeyID);
-    if (storeyProps && storeyProps.Name?.value) {
-      return storeyProps.Name.value;
-    }
-  }
-
-  return "Unassigned";
-};
-
-// Main function to collect all entities by type
-const collectEntitiesByType = async (
-  components: OBC.Components,
-  model: FRAGS.FragmentsGroup,
-  inverseAttributes: OBC.InverseAttribute[],
-) => {
-  const indexer = components.get(OBC.IfcRelationsIndexer);
-  const entityTypeMap: Record<
-    string,
-    Array<{ expressID: number; level: string; name: string }>
-  > = {};
-
-  // First, get the project
-  const projectAttrs = await model.getAllPropertiesOfType(WEBIFC.IFCPROJECT);
-  if (!projectAttrs || Object.keys(projectAttrs).length === 0)
-    return entityTypeMap;
-
-  const projectExpressID = Object.values(projectAttrs)[0].expressID;
-
-  // Process all entities recursively to build the type map
-  const processEntities = async (expressID: number) => {
-    // Get entity properties
-    const entityAttrs = await model.getProperties(expressID);
-    if (!entityAttrs) return;
-
-    const { type } = entityAttrs;
-    const entityType = OBC.IfcCategoryMap[type] || type;
-
-    // Skip non-physical elements like relations
-    if (entityType.startsWith("IfcRel")) return;
-
-    // Get entity level
-    const level = await findEntityLevel(model, expressID);
-
-    // Add entity to the map
-    if (!entityTypeMap[entityType]) {
-      entityTypeMap[entityType] = [];
-    }
-
-    entityTypeMap[entityType].push({
-      expressID,
-      level,
-      name: entityAttrs.Name?.value || `${entityType}_${expressID}`,
-    });
-
-    // Process relations
-    for (const attrName of inverseAttributes) {
-      const relations = indexer.getEntityRelations(model, expressID, attrName);
-      if (!relations) continue;
-
-      for (const id of relations) {
-        await processEntities(id);
-      }
-    }
+  private _state: CustomTreeState = {
+    models: [],
+    inverseAttributes: ["IsDecomposedBy", "ContainsElements"],
   };
 
-  // Start recursion from project
-  await processEntities(projectExpressID);
+  constructor(components: OBC.Components) {
+    super(components);
+    this.components.add(CustomTree.uuid, this);
+  }
 
-  return entityTypeMap;
-};
+  async update(state: Partial<CustomTreeState>) {
+    this._state = { ...this._state, ...state };
+    await this.processModels();
+  }
 
-// Format entities into table rows
-const formatEntityRows = (
-  model: FRAGS.FragmentsGroup,
-  entityTypeMap: Record<
-    string,
-    Array<{ expressID: number; level: string; name: string }>
-  >,
-): BUI.TableGroupData[] => {
-  const rows: BUI.TableGroupData[] = [];
+  private async processModels() {
+    if (!this.table) return;
+    if (!this._state.models) return;
 
-  // For each entity type
-  for (const entityType in entityTypeMap) {
-    const entities = entityTypeMap[entityType];
+    const rows = await this.computeElementsRowData();
 
-    // Create the entity type row
-    const entityTypeRow: BUI.TableGroupData = {
-      data: {
-        Entity: entityType,
-        modelID: model.uuid,
-        relations: JSON.stringify(entities.map((e) => e.expressID)),
-      },
-      children: [],
-    };
+    this.table.data = rows;
+  }
 
-    // Group entities by level
-    const entitiesByLevel: Record<
-      string,
-      Array<{ expressID: number; name: string }>
-    > = {};
+  private getElementTypeName(type: number): string {
+    return OBC.IfcCategoryMap[type] || "Unknown";
+  }
 
-    for (const entity of entities) {
-      const levelName = entity.level;
+  private async getElementLevel(
+    model: FRAGS.FragmentsGroup,
+    expressID: number,
+  ): Promise<string> {
+    const entityProps = await model.getProperties(expressID);
+    if (!entityProps) return "Unknown Level";
 
-      if (!entitiesByLevel[levelName]) {
-        entitiesByLevel[levelName] = [];
+    // First try direct containment
+    if (entityProps.ContainedInStructure?.value) {
+      const containerId = entityProps.ContainedInStructure.value;
+      const containerProps = await model.getProperties(containerId);
+      if (containerProps) {
+        return containerProps.Name?.value || `Level ${containerId}`;
       }
-
-      entitiesByLevel[levelName].push({
-        expressID: entity.expressID,
-        name: entity.name,
-      });
     }
 
-    // Create level rows
-    for (const levelName in entitiesByLevel) {
-      const levelEntities = entitiesByLevel[levelName];
+    // Alternative approach using inverse relationships
+    const indexer = this.components.get(OBC.IfcRelationsIndexer);
+    const containers = indexer.getEntityRelations(
+      model,
+      expressID,
+      "ContainsElements",
+    );
+    if (containers && containers.length > 0) {
+      const containerProps = await model.getProperties(containers[0]);
+      if (containerProps) {
+        return containerProps.Name?.value || `Level ${containers[0]}`;
+      }
+    }
 
-      const levelRow: BUI.TableGroupData = {
-        data: {
-          Entity: levelName,
-          modelID: model.uuid,
-          relations: JSON.stringify(levelEntities.map((e) => e.expressID)),
-        },
+    return "Unknown Level";
+  }
+
+  private async groupElementsByType(model: FRAGS.FragmentsGroup) {
+    const elementsByType: Record<
+      string,
+      { expressID: number; name?: string; level?: string }[]
+    > = {};
+    const indexer = this.components.get(OBC.IfcRelationsIndexer);
+    const inverseAttributes = this._state.inverseAttributes || [
+      "IsDecomposedBy",
+      "ContainsElements",
+    ];
+
+    const projectAttrs = await model.getAllPropertiesOfType(WEBIFC.IFCPROJECT);
+    if (!projectAttrs) return elementsByType;
+
+    const projectID = Object.values(projectAttrs)[0].expressID;
+    const visited = new Set<number>();
+
+    const collectElements = async (expressID: number) => {
+      if (visited.has(expressID)) return;
+      visited.add(expressID);
+
+      const entityProps = await model.getProperties(expressID);
+      if (!entityProps) return;
+
+      const { type } = entityProps;
+      const typeName = this.getElementTypeName(type);
+
+      // Skip only pure spatial elements
+      if (
+        [WEBIFC.IFCPROJECT, WEBIFC.IFCSITE, WEBIFC.IFCBUILDING].includes(type)
+      ) {
+        for (const attr of inverseAttributes) {
+          const relations = indexer.getEntityRelations(model, expressID, attr);
+          if (!relations) continue;
+          for (const id of relations) await collectElements(id);
+        }
+        return;
+      }
+
+      // For building storeys, process them but also include in the list
+      if (type === WEBIFC.IFCBUILDINGSTOREY) {
+        if (!elementsByType["Building Storey"])
+          elementsByType["Building Storey"] = [];
+        elementsByType["Building Storey"].push({
+          expressID,
+          name: entityProps.Name?.value,
+          level: entityProps.Name?.value || `Level ${expressID}`,
+        });
+      } else {
+        // Regular element
+        const level = await this.getElementLevel(model, expressID);
+        if (!elementsByType[typeName]) elementsByType[typeName] = [];
+        elementsByType[typeName].push({
+          expressID,
+          name: entityProps.Name?.value,
+          level,
+        });
+      }
+
+      // Process children
+      for (const attr of inverseAttributes) {
+        const relations = indexer.getEntityRelations(model, expressID, attr);
+        if (!relations) continue;
+        for (const id of relations) await collectElements(id);
+      }
+    };
+
+    await collectElements(projectID);
+    return elementsByType;
+  }
+
+  private createElementTypeRows(
+    model: FRAGS.FragmentsGroup,
+    elementsByType: Record<
+      string,
+      { expressID: number; name?: string; level?: string }[]
+    >,
+  ): BUI.TableGroupData[] {
+    const rows: BUI.TableGroupData[] = [];
+
+    for (const [typeName, elements] of Object.entries(elementsByType)) {
+      if (elements.length === 0) continue;
+
+      const typeRow: BUI.TableGroupData = {
+        data: { Entity: typeName, modelID: model.uuid },
         children: [],
       };
 
-      // Add entity rows under the level
-      for (const entity of levelEntities) {
-        const entityRow: BUI.TableGroupData = {
-          data: {
-            Entity: entity.name,
-            modelID: model.uuid,
-            expressID: entity.expressID,
-            relations: "[]",
-          },
+      const elementsByLevel: Record<
+        string,
+        { expressID: number; name?: string }[]
+      > = {};
+      for (const element of elements) {
+        const levelName = element.level || "Unknown Level";
+        if (!elementsByLevel[levelName]) elementsByLevel[levelName] = [];
+        elementsByLevel[levelName].push({
+          expressID: element.expressID,
+          name: element.name,
+        });
+      }
+
+      for (const [levelName, levelElements] of Object.entries(
+        elementsByLevel,
+      )) {
+        const levelRow: BUI.TableGroupData = {
+          data: { Entity: levelName, modelID: model.uuid },
+          children: levelElements.map((element) => ({
+            data: {
+              Entity: element.name || `Element ${element.expressID}`,
+              modelID: model.uuid,
+              expressID: element.expressID,
+            },
+          })),
         };
-
-        levelRow.children!.push(entityRow);
+        typeRow.children?.push(levelRow);
       }
 
-      entityTypeRow.children!.push(levelRow);
+      rows.push(typeRow);
     }
 
-    rows.push(entityTypeRow);
+    return rows;
   }
 
-  return rows;
-};
+  private async computeElementsRowData() {
+    if (!this._state.models) return [];
 
-const computeRowData = async (
-  components: OBC.Components,
-  models: Iterable<FRAGS.FragmentsGroup>,
-  inverseAttributes: OBC.InverseAttribute[],
-  expressID?: number,
-) => {
-  const rows: BUI.TableGroupData[] = [];
+    const rows: BUI.TableGroupData[] = [];
+    for (const model of this._state.models) {
+      const modelData: BUI.TableGroupData = {
+        data: { Entity: model.name || model.uuid },
+        children: [],
+      };
 
-  for (const model of models) {
-    let entityTypeMap;
+      if (this._state.expressID) {
+        // Handle specific expressID case
+        const elementProps = await model.getProperties(this._state.expressID);
+        if (!elementProps) continue;
 
-    // Use provided expressID or get project ID
-    if (expressID) {
-      entityTypeMap = await collectEntitiesByType(
-        components,
-        model,
-        inverseAttributes,
-      );
-    } else {
-      entityTypeMap = await collectEntitiesByType(
-        components,
-        model,
-        inverseAttributes,
-      );
-    }
+        const indexer = this.components.get(OBC.IfcRelationsIndexer);
+        const childElements = [];
+        for (const attr of this._state.inverseAttributes || []) {
+          const relations = indexer.getEntityRelations(
+            model,
+            this._state.expressID,
+            attr,
+          );
+          if (!relations) continue;
+          for (const id of relations) {
+            const props = await model.getProperties(id);
+            if (props)
+              childElements.push({
+                expressID: id,
+                type: props.type,
+                name: props.Name?.value,
+              });
+          }
+        }
 
-    const modelRow: BUI.TableGroupData = {
-      data: {
-        Entity: model.name !== "" ? model.name : model.uuid,
-      },
-      children: formatEntityRows(model, entityTypeMap),
-    };
+        const elementsByType: Record<
+          string,
+          { expressID: number; name?: string }[]
+        > = {};
+        for (const element of childElements) {
+          const typeName = this.getElementTypeName(element.type);
+          if (!elementsByType[typeName]) elementsByType[typeName] = [];
+          elementsByType[typeName].push({
+            expressID: element.expressID,
+            name: element.name,
+          });
+        }
 
-    rows.push(modelRow);
-  }
-
-  return rows;
-};
-
-let table: BUI.Table;
-
-const getRowFragmentIdMap = (components: OBC.Components, rowData: any) => {
-  const fragments = components.get(OBC.FragmentsManager);
-  const { modelID, expressID, relations } = rowData as {
-    modelID: string;
-    expressID: number;
-    relations: string;
-  };
-  if (!modelID) return null;
-  const model = fragments.groups.get(modelID);
-  if (!model) return null;
-  const fragmentIDMap = model.getFragmentMap([
-    expressID,
-    ...JSON.parse(relations ?? "[]"),
-  ]);
-  return fragmentIDMap;
-};
-
-export const entityTypeTreeTemplate = (state: EntityTypeTreeUIState) => {
-  const { components, models, expressID } = state;
-
-  const selectHighlighterName = state.selectHighlighterName ?? "select";
-  const hoverHighlighterName = state.hoverHighlighterName ?? "hover";
-
-  if (!table) {
-    table = document.createElement("bim-table");
-    table.hiddenColumns = ["modelID", "expressID", "relations"];
-    table.columns = ["Entity", "Name"];
-    table.headersHidden = true;
-
-    table.addEventListener("cellcreated", ({ detail }) => {
-      const { cell } = detail;
-      if (cell.column === "Entity" && !("Name" in cell.rowData)) {
-        cell.style.gridColumn = "1 / -1";
+        for (const [typeName, elements] of Object.entries(elementsByType)) {
+          modelData.children?.push({
+            data: { Entity: typeName, modelID: model.uuid },
+            children: elements.map((element) => ({
+              data: {
+                Entity: element.name || `Element ${element.expressID}`,
+                modelID: model.uuid,
+                expressID: element.expressID,
+              },
+            })),
+          });
+        }
+      } else {
+        // Process entire model
+        const elementsByType = await this.groupElementsByType(model);
+        modelData.children = this.createElementTypeRows(model, elementsByType);
       }
-    });
+
+      rows.push(modelData);
+    }
+
+    return rows;
   }
 
-  table.addEventListener("rowcreated", (e) => {
-    e.stopImmediatePropagation();
-    const { row } = e.detail;
-    const highlighter = components.get(OBF.Highlighter);
-    const fragmentIDMap = getRowFragmentIdMap(components, row.data);
-    if (!(fragmentIDMap && Object.keys(fragmentIDMap).length !== 0)) return;
-    row.onmouseover = () => {
-      if (!hoverHighlighterName) return;
-      row.style.backgroundColor = "var(--bim-ui_bg-contrast-20)";
-      highlighter.highlightByID(
-        hoverHighlighterName,
-        fragmentIDMap,
-        true,
-        false,
-        highlighter.selection[selectHighlighterName] ?? {},
-      );
-    };
-
-    row.onmouseout = () => {
-      row.style.backgroundColor = "";
-      highlighter.clear(hoverHighlighterName);
-    };
-
-    row.onclick = () => {
-      if (!selectHighlighterName) return;
-      highlighter.highlightByID(
-        selectHighlighterName,
-        fragmentIDMap,
-        true,
-        true,
-      );
-    };
-  });
-
-  const inverseAttributes: OBC.InverseAttribute[] = state.inverseAttributes ?? [
-    "IsDecomposedBy",
-    "ContainsElements",
-  ];
-
-  computeRowData(components, models, inverseAttributes, expressID).then(
-    (data) => (table.data = data),
-  );
-
-  return BUI.html`${table}`;
-};
-
-// Example usage:
-// const tree = entityTypeTreeTemplate({
-//   components: components,
-//   models: components.get(OBC.FragmentsManager).groups.values(),
-//   hoverHighlighterName: "hover",
-//   selectHighlighterName: "select"
-// });
+  async dispose() {
+    this.table = undefined;
+    this.onDisposed.trigger();
+    this.onDisposed.reset();
+  }
+}

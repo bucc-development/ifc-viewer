@@ -1,10 +1,10 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
-import { entityTypeTreeTemplate } from "../../bim-components/CustomTree";
+import { customTreeTemplate } from "../../bim-components/CustomTree";
 
 // Example usage component
 export const customRelTree = (components: OBC.Components) => {
-  const entityTypeTree = entityTypeTreeTemplate({
+  const customTree = customTreeTemplate({
     components,
     models: [],
     hoverHighlighterName: "hover",
@@ -22,10 +22,10 @@ export const customRelTree = (components: OBC.Components) => {
     return BUI.html`
       <bim-panel>
         <bim-panel-section label="Entity Types" icon="ph:tree-structure-fill">
-          ${entityTypeTree}
+          ${customTree}
         </bim-panel-section>
-      </bim-panel> 
-      `;
+      </bim-panel>
+    `;
   });
 };
 

@@ -14,6 +14,7 @@ import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
 import "./style.css";
 import QTO from "./components/Panels/QTO";
 import { customRelTree } from "./components/Panels/CustomRelTree";
+import { CustomTree } from "./bim-components/CustomTree";
 
 // Initialize application
 (async () => {
@@ -114,6 +115,12 @@ import { customRelTree } from "./components/Panels/CustomRelTree";
     world.camera.controls.addEventListener("rest", () => {
       culler.needsUpdate = true;
       tilesLoader.culler.needsUpdate = true;
+    });
+
+    // When models are loaded or changed
+    fragments.onFragmentsLoaded.add((model) => {
+      const customTree = components.get(CustomTree);
+      customTree.update({ models: fragments.groups.values() });
     });
 
     // Setup UI components

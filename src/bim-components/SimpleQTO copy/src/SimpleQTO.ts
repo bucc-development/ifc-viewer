@@ -56,14 +56,14 @@ export class SimpleQTO extends OBC.Component implements OBC.Disposable {
                   await OBC.IfcPropertiesUtils.getEntityName(model, qtoID);
                 const { value } = await OBC.IfcPropertiesUtils.getQuantityValue(
                   model,
-                  qtoID
+                  qtoID,
                 );
                 if (!qtoName || !value) return;
                 if (!(qtoName in this._qtoResult[setName])) {
                   this._qtoResult[setName][qtoName] = 0;
                 }
                 this._qtoResult[setName][qtoName] += value;
-              }
+              },
             );
           }
         }
