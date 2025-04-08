@@ -69,10 +69,12 @@ export class SimpleQTO extends OBC.Component implements OBC.Disposable {
         }
       }
     }
-    this.updateTable();
+    setTimeout(async () => {
+      this.updateTable();
+    }, 50);
   }
 
-  private updateTable() {
+  updateTable() {
     if (!this.table) return;
 
     const tableData: TableGroupData[] = [];

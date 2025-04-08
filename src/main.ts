@@ -118,7 +118,7 @@ import { CustomTree } from "./bim-components/CustomTree";
     });
 
     // When models are loaded or changed
-    fragments.onFragmentsLoaded.add((model) => {
+    fragments.onFragmentsLoaded.add(() => {
       const customTree = components.get(CustomTree);
       customTree.update({ models: fragments.groups.values() });
     });
@@ -141,6 +141,16 @@ import { CustomTree } from "./bim-components/CustomTree";
         </bim-tabs> 
       `;
     });
+
+    const onShowProperty = (): void => {
+      if (!viewportGrid) return;
+
+      if (viewportGrid.layout !== "second") {
+        viewportGrid.layout = "second";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
 
     const onShowQuantity = async () => {
       if (!components) return;
@@ -177,22 +187,28 @@ import { CustomTree } from "./bim-components/CustomTree";
       return BUI.html`
         <bim-toolbar>
           ${load(components)}
-          ${camera(world)}
-          ${selection(components, world)}
-          <bim-toolbar-section label="Quantities" icon="solar:import-bold">
+          <bim-toolbar-section label="Properties" icon="clarity:nodes-line">
+            <bim-button 
+              tooltip-title="Properties" 
+              tooltip-text="Show properties of the highlighted elements."
+              icon="clarity:list-line"
+              @click=${onShowProperty}
+            ></bim-button>
             <bim-button 
             tooltip-title="Total Quantities" 
             tooltip-text="Adds up the quantities of the selected elements"
             icon="mdi:summation"
-            @click=${onShowQuantity}
+            @click=${onShowQuantity}  
             ></bim-button>
             <bim-button 
-            tooltip-title="Sum quantities" 
-            tooltip-text="Adds up the quantities of the selected elements"
-            icon="mdi:summation"
+            tooltip-title="Classification" 
+            tooltip-text="Shows classification tree for the loaded model."
+            icon="clarity:tree-view-line"
             @click=${onShowCustomTree}
             ></bim-button>
           </bim-toolbar-section>
+          ${camera(world)}
+          ${selection(components, world)}
         </bim-toolbar>
       `;
     });

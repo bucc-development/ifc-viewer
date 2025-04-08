@@ -27,10 +27,9 @@ export const qtoTool = (state: QTOUIState) => {
 
   simpleQto.table = qtoTable;
 
-  // simpleQto.onDisposed.add(() => {
-  //   qtoTable.data = [];
-  //   qtoTable.remove();
-  // });
+  simpleQto.onDisposed.add(() => {
+    qtoTable.remove();
+  });
 
   return qtoTable;
 };
