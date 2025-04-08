@@ -13,13 +13,14 @@ import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
 
 import "./style.css";
 import QTO from "./components/Panels/QTO";
+import { customRelTree } from "./components/Panels/CustomRelTree";
 
 // Initialize application
 (async () => {
   try {
     // Set initial theme based on system preference
     const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
+      "(prefers-color-scheme: dark)",
     ).matches;
     document.documentElement.className = prefersDark
       ? "bim-ui-dark"
@@ -119,6 +120,7 @@ import QTO from "./components/Panels/QTO";
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
     const qtoPanel = QTO(components);
+    const customTreePanel = customRelTree(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -152,6 +154,18 @@ import QTO from "./components/Panels/QTO";
       }
     };
 
+    const onShowCustomTree = async () => {
+      if (!viewportGrid) {
+        console.warn("QTO panel not ready yet");
+        return;
+      }
+      if (viewportGrid.layout !== "customTree") {
+        viewportGrid.layout = "customTree";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
+
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
@@ -160,11 +174,16 @@ import QTO from "./components/Panels/QTO";
           ${selection(components, world)}
           <bim-toolbar-section label="Quantities" icon="solar:import-bold">
             <bim-button 
-            label="Total Quantities"
-            tooltip-title="Sum quantities" 
+            tooltip-title="Total Quantities" 
             tooltip-text="Adds up the quantities of the selected elements"
             icon="mdi:summation"
             @click=${onShowQuantity}
+            ></bim-button>
+            <bim-button 
+            tooltip-title="Sum quantities" 
+            tooltip-text="Adds up the quantities of the selected elements"
+            icon="mdi:summation"
+            @click=${onShowCustomTree}
             ></bim-button>
           </bim-toolbar-section>
         </bim-toolbar>
@@ -220,6 +239,17 @@ import QTO from "./components/Panels/QTO";
         elements: {
           toolbar,
           qtoPanel,
+        },
+      },
+      customTree: {
+        template: `
+          "empty customTreePanel" 1fr
+          "toolbar customTreePanel" auto
+          /1fr 24rem
+        `,
+        elements: {
+          toolbar,
+          customTreePanel,
         },
       },
     };
