@@ -6,7 +6,7 @@ export interface QTOUIState {
   components: OBC.Components;
 }
 
-export const qtoTool = (state: QTOUIState) => {
+export const simpleQTOTool = (state: QTOUIState) => {
   const { components } = state;
   const simpleQto = components.get(SimpleQTO);
 

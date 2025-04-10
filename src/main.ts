@@ -12,7 +12,7 @@ import { AppManager } from "./bim-components";
 import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
 
 import "./style.css";
-import QTO from "./components/Panels/QTO";
+import QTO from "./components/Panels/SimpleQTO";
 import { customRelTree } from "./components/Panels/CustomRelTree";
 import { CustomTree } from "./bim-components/CustomTree";
 
@@ -191,13 +191,19 @@ import { CustomTree } from "./bim-components/CustomTree";
             <bim-button 
               tooltip-title="Properties" 
               tooltip-text="Show properties of the highlighted elements."
-              icon="clarity:list-line"
+              icon="clarity:list-solid"
               @click=${onShowProperty}
             ></bim-button>
             <bim-button 
             tooltip-title="Simple Quantities" 
             tooltip-text="Adds up the quantities of all selected elements"
             icon="mdi:summation"
+            @click=${onShowQuantity}  
+            ></bim-button>
+            <bim-button 
+            tooltip-title="Create Quantity Takeoff" 
+            tooltip-text="Open Custom Table to generate a complete Quantity Takeoff"
+            icon="clarity:calculator-solid"
             @click=${onShowQuantity}  
             ></bim-button>
             <!-- <bim-button 
