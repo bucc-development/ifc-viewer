@@ -17,7 +17,7 @@ export const qtoTool = (state: QTOUIState) => {
   });
 
   qtoTable.headersHidden = true;
-  qtoTable.hiddenColumns = ["Set"];
+  // qtoTable.hiddenColumns = ["Set"];
   qtoTable.dataTransform = {
     Value: (value: string | number | boolean) => {
       if (typeof value === "number") {
