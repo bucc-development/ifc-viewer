@@ -14,7 +14,6 @@ const serializeFragmentIdMap = (fragmentIdMap: FRAGS.FragmentIdMap) => {
   }
   console.log(JSON.stringify(map));
   return JSON.stringify(map);
-  
 };
 
 export default (state: GroupingsUIState) => {

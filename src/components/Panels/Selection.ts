@@ -3,13 +3,14 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as CUI from "@thatopen/ui-obc";
 import { AppManager } from "../../bim-components";
-import { SimpleQTO } from "../../bim-components/SimpleQTO copy";
+import { SimpleQTO } from "../../bim-components/SimpleQTO";
 
 export default (components: OBC.Components) => {
   const fragments = components.get(OBC.FragmentsManager);
   const highlighter = components.get(OBF.Highlighter);
   const appManager = components.get(AppManager);
   const viewportGrid = appManager.grids.get("viewport");
+  // let QTOLayout = false;
 
   const [propsTable, updatePropsTable] = CUI.tables.elementProperties({
     components,
@@ -20,22 +21,24 @@ export default (components: OBC.Components) => {
   fragments.onFragmentsDisposed.add(() => updatePropsTable());
 
   highlighter.events.select.onHighlight.add(async (fragmentIdMap) => {
-    if (!viewportGrid) return;
-    viewportGrid.layout = "second";
-    propsTable.expanded = false;
-    updatePropsTable({ fragmentIdMap });
-
     const simpleQto = components.get(SimpleQTO);
+
+    propsTable.expanded = true;
+    updatePropsTable({ fragmentIdMap });
     await simpleQto.sumQuantities(fragmentIdMap);
   });
 
   highlighter.events.select.onClear.add(() => {
     updatePropsTable({ fragmentIdMap: {} });
-    if (!viewportGrid) return;
-    viewportGrid.layout = "main";
-
     const simpleQto = components.get(SimpleQTO);
     simpleQto.resetQuantities();
+
+    setTimeout(() => {
+      if (!viewportGrid) return;
+      if (Object.keys(highlighter.selection.select).length === 0) {
+        viewportGrid.layout = "main";
+      }
+    }, 5);
   });
 
   const search = (e: Event) => {

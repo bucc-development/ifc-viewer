@@ -37,8 +37,8 @@ export default (world: OBC.World) => {
   return BUI.Component.create<BUI.PanelSection>(() => {
     return BUI.html`
       <bim-toolbar-section label="Camera" icon="ph:camera-fill" style="pointer-events: auto">
-        <bim-button label="Fit Model" icon="material-symbols:fit-screen-rounded" @click=${onFitModel}></bim-button>
-        <bim-button label="Disable" icon="tabler:lock-filled" @click=${onLock} .active=${!camera.enabled}></bim-button>
+        <bim-button tooltip-title="Fit Model" tooltip-text="Fit the entire model in the camera view." icon="material-symbols:fit-screen-rounded" @click=${onFitModel}></bim-button>
+        <bim-button tooltip-title="Disable" tooltip-text="Disable camera movement." icon="tabler:lock-filled" @click=${onLock} .active=${!camera.enabled}></bim-button>
         <!-- <bim-dropdown required>
           <bim-option label="Perspective"></bim-option>
           <bim-option label="Orthographic"></bim-option>
