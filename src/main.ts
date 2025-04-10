@@ -9,7 +9,7 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
-import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
+import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
 
 import "./style.css";
 import QTO from "./components/Panels/QTO";
@@ -195,17 +195,17 @@ import { CustomTree } from "./bim-components/CustomTree";
               @click=${onShowProperty}
             ></bim-button>
             <bim-button 
-            tooltip-title="Total Quantities" 
-            tooltip-text="Adds up the quantities of the selected elements"
+            tooltip-title="Simple Quantities" 
+            tooltip-text="Adds up the quantities of all selected elements"
             icon="mdi:summation"
             @click=${onShowQuantity}  
             ></bim-button>
-            <bim-button 
+            <!-- <bim-button 
             tooltip-title="Classification" 
             tooltip-text="Shows classification tree for the loaded model."
             icon="clarity:tree-view-line"
             @click=${onShowCustomTree}
-            ></bim-button>
+            ></bim-button> -->
           </bim-toolbar-section>
           ${camera(world)}
           ${selection(components, world)}

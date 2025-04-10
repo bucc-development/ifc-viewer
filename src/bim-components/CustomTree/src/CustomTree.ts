@@ -45,6 +45,8 @@ export class CustomTree extends OBC.Component implements OBC.Disposable {
     return OBC.IfcCategoryMap[type] || "Unknown";
   }
 
+  // WORK IN PROGRESS
+
   private async getElementLevel(
     model: FRAGS.FragmentsGroup,
     expressID: number,

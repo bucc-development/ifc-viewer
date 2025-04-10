@@ -1,7 +1,7 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 import * as OBF from "@thatopen/components-front";
-import { qtoTool } from "../../bim-components/SimpleQTO copy/src/Template";
+import { qtoTool } from "../../bim-components/SimpleQTO/src/Template";
 
 export default (components: OBC.Components) => {
   const highlighter = components.get(OBF.Highlighter);

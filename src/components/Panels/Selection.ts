@@ -3,7 +3,7 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as CUI from "@thatopen/ui-obc";
 import { AppManager } from "../../bim-components";
-import { SimpleQTO } from "../../bim-components/SimpleQTO copy";
+import { SimpleQTO } from "../../bim-components/SimpleQTO";
 
 export default (components: OBC.Components) => {
   const fragments = components.get(OBC.FragmentsManager);
