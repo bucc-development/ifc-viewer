@@ -2,6 +2,8 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+import * as WEBIFC from "web-ifc";
+import * as FRAGS from "@thatopen/fragments";
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
@@ -152,7 +154,7 @@ import { CustomTree } from "./bim-components/CustomTree";
       }
     };
 
-    const onShowQuantity = async () => {
+    const onShowSimpleQuantity = async () => {
       if (!components) return;
 
       const highlighter = components.get(OBF.Highlighter);
@@ -183,6 +185,53 @@ import { CustomTree } from "./bim-components/CustomTree";
       }
     };
 
+    const onShowCompleteQuantity = async () => {
+      const fragmentManager = components.get(OBC.FragmentsManager);
+      const models = fragmentManager.groups.values();
+      const properties = new Set<string>();
+
+      for (const model of models) {
+        if (!model || !model.hasProperties) continue;
+
+        // Get all property sets directly
+        const propertySets = await model.getAllPropertiesOfType(
+          WEBIFC.IFCPROPERTYSET,
+        );
+        const quantitySets = await model.getAllPropertiesOfType(
+          WEBIFC.IFCELEMENTQUANTITY,
+        );
+
+        // Process property sets
+        if (propertySets) {
+          for (const expressID in propertySets) {
+            const { name: setName } =
+              await OBC.IfcPropertiesUtils.getEntityName(
+                model,
+                Number(expressID),
+              );
+            if (setName) properties.add(setName);
+          }
+        }
+
+        // Process quantity sets
+        if (quantitySets) {
+          for (const expressID in quantitySets) {
+            const { name: setName } =
+              await OBC.IfcPropertiesUtils.getEntityName(
+                model,
+                Number(expressID),
+              );
+            if (setName) properties.add(setName);
+          }
+        }
+      }
+
+      // Convert Set to array for final output
+      const propertySetNamesArray = Array.from(properties);
+      console.log("Unique Property Set Names:", propertySetNamesArray);
+      return propertySetNamesArray;
+    };
+
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
@@ -198,13 +247,13 @@ import { CustomTree } from "./bim-components/CustomTree";
             tooltip-title="Simple Quantities" 
             tooltip-text="Adds up the quantities of all selected elements"
             icon="mdi:summation"
-            @click=${onShowQuantity}  
+            @click=${onShowSimpleQuantity}  
             ></bim-button>
             <bim-button 
             tooltip-title="Create Quantity Takeoff" 
             tooltip-text="Open Custom Table to generate a complete Quantity Takeoff"
             icon="clarity:calculator-solid"
-            @click=${onShowQuantity}  
+            @click=${onShowCompleteQuantity}  
             ></bim-button>
             <!-- <bim-button 
             tooltip-title="Classification" 
