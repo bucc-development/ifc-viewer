@@ -1,12 +1,11 @@
 import * as OBC from "@thatopen/components";
-import * as FRAGS from "@thatopen/fragments";
 import * as WEBIFC from "web-ifc";
 
 export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   static uuid = "663bebd3-ed4b-49fb-81ec-2be7c31ce2c2";
   enabled = true;
   onDisposed: OBC.Event<any> = new OBC.Event();
-  private _categories: any[] = [];
+  private _categories: string[] = [];
 
   constructor(components: OBC.Components) {
     super(components);
@@ -14,6 +13,7 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   }
 
   async getCategories() {
+    const mainCategory = "Name";
     const fragmentManager = this.components.get(OBC.FragmentsManager);
     const models = fragmentManager.groups.values();
 
@@ -40,14 +40,15 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
               );
 
               if (!name.name) return;
-              if (name.name === "Category") {
+              if (name.name === mainCategory) {
                 const value = await OBC.IfcPropertiesUtils.getQuantityValue(
                   model,
                   propertyID,
                 );
                 if (!value.value) return;
-                if (!this._categories.includes(value.value)) {
-                  this._categories.push(value.value);
+                const valueAsString = value.value.toString();
+                if (!this._categories.includes(valueAsString)) {
+                  this._categories.push(valueAsString);
                 }
               }
             },
@@ -56,7 +57,12 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
       );
       console.log(this._categories);
     }
+    return this._categories;
   }
 
-  dispose() {}
+  dispose() {
+    this._categories = [];
+    this.onDisposed.trigger();
+    this.onDisposed.reset();
+  }
 }

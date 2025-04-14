@@ -8,6 +8,7 @@ import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
 import simpleQtoPanel from "./components/Panels/SimpleQTO";
 import customRelTree from "./components/Panels/CustomRelTree";
+import CompleteQTOPanel from "./components/Panels/CompleteQTO";
 
 import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
@@ -16,7 +17,6 @@ import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components/AppManager";
 import { SimpleQTO } from "./bim-components/SimpleQTO";
 import { CustomTree } from "./bim-components/CustomTree";
-import { CompleteQTO } from "./bim-components/CompleteQTO";
 
 import "./style.css";
 
@@ -132,6 +132,7 @@ import "./style.css";
     const elementDataPanel = elementData(components);
     const qtoPanel = simpleQtoPanel(components);
     const customTreePanel = customRelTree(components);
+    const completeQTOPanel = CompleteQTOPanel();
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -188,8 +189,15 @@ import "./style.css";
     };
 
     const onShowCompleteQuantity = async () => {
-      const completeQTO = components.get(CompleteQTO);
-      await completeQTO.getCategories();
+      if (!viewportGrid) {
+        console.warn("QTO panel not ready yet");
+        return;
+      }
+      if (viewportGrid.layout !== "qtoCategories") {
+        viewportGrid.layout = "qtoCategories";
+      } else {
+        viewportGrid.layout = "main";
+      }
     };
 
     const toolbar = BUI.Component.create(() => {
@@ -288,6 +296,17 @@ import "./style.css";
         elements: {
           toolbar,
           customTreePanel,
+        },
+      },
+      qtoCategories: {
+        template: `
+          "empty completeQTOPanel" 1fr
+          "toolbar toolbar" auto
+          /1fr 24rem
+        `,
+        elements: {
+          toolbar,
+          completeQTOPanel,
         },
       },
     };
