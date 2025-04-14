@@ -2,22 +2,23 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
-import * as WEBIFC from "web-ifc";
-import * as FRAGS from "@thatopen/fragments";
+
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
+import simpleQtoPanel from "./components/Panels/SimpleQTO";
+import customRelTree from "./components/Panels/CustomRelTree";
+
 import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
-import { AppManager } from "./bim-components";
-import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
 
-import "./style.css";
-import QTO from "./components/Panels/SimpleQTO";
-import { customRelTree } from "./components/Panels/CustomRelTree";
+import { AppManager } from "./bim-components/AppManager";
+import { SimpleQTO } from "./bim-components/SimpleQTO";
 import { CustomTree } from "./bim-components/CustomTree";
 import { CompleteQTO } from "./bim-components/CompleteQTO";
+
+import "./style.css";
 
 // Initialize application
 (async () => {
@@ -129,7 +130,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
-    const qtoPanel = QTO(components);
+    const qtoPanel = simpleQtoPanel(components);
     const customTreePanel = customRelTree(components);
 
     const leftPanel = BUI.Component.create(() => {

@@ -3,7 +3,7 @@ import * as BUI from "@thatopen/ui";
 import { customTreeTemplate } from "../../bim-components/CustomTree";
 
 // Example usage component
-export const customRelTree = (components: OBC.Components) => {
+export default (components: OBC.Components) => {
   const customTree = customTreeTemplate({
     components,
     models: [],
