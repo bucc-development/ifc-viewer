@@ -17,6 +17,7 @@ import "./style.css";
 import QTO from "./components/Panels/SimpleQTO";
 import { customRelTree } from "./components/Panels/CustomRelTree";
 import { CustomTree } from "./bim-components/CustomTree";
+import { CompleteQTO } from "./bim-components/CompleteQTO";
 
 // Initialize application
 (async () => {
@@ -186,48 +187,8 @@ import { CustomTree } from "./bim-components/CustomTree";
     };
 
     const onShowCompleteQuantity = async () => {
-      const fragmentManager = components.get(OBC.FragmentsManager);
-      const models = fragmentManager.groups.values();
-      const ifcTypes = new Set<string>();
-
-      for (const model of models) {
-        if (!model || !model.hasProperties) continue;
-
-        // // Get all property sets directly
-        // const quantitySets = await model.getAllPropertiesOfType(
-        //   WEBIFC.IFCELEMENTQUANTITY,
-        // );
-
-        const propertyIDs = model.getAllPropertiesIDs();
-        if (!propertyIDs || propertyIDs.length === 0) continue;
-
-        for (const expressID of propertyIDs) {
-          const element = await model.getProperties(expressID);
-          if (!element?.type) continue;
-
-          // i'M NOW GETTING THE ID OF THE PROPERTIES, NEED TO TRANSFORM IT INTO THE NAME
-          const propertySets = await model.getAllPropertiesOfType(
-            WEBIFC.IFCPROPERTYSET,
-          );
-          // Add the raw IFC type (e.g., "IFCWALL", "IFCDOOR")
-          ifcTypes.add(element.type);
-        }
-
-        // if (attributes) {
-        //   for (const expressID in attributes) {
-        //     const { name: setName } =
-        //       await OBC.IfcPropertiesUtils.getEntityName(
-        //         model,
-        //         Number(expressID),
-        //       );
-        //     if (setName) properties.add(setName);
-        //   }
-        // }
-      }
-
-      const ifcTypesArray = Array.from(ifcTypes);
-      console.log("Unique IFC Types:", ifcTypesArray);
-      return ifcTypesArray;
+      const completeQTO = components.get(CompleteQTO);
+      await completeQTO.getCategories();
     };
 
     const toolbar = BUI.Component.create(() => {
