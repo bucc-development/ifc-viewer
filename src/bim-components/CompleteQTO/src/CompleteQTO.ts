@@ -7,13 +7,22 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   onDisposed: OBC.Event<any> = new OBC.Event();
   private _categories: string[] = [];
 
+  get categories(): string[] {
+    return this._categories;
+  }
+
   constructor(components: OBC.Components) {
     super(components);
     this.components.add(CompleteQTO.uuid, this);
   }
 
-  async getCategories() {
+  resetCategories() {
+    this._categories = [];
+  }
+
+  async getCategories(): Promise<string[]> {
     const mainCategory = "Name";
+    this.resetCategories();
     const fragmentManager = this.components.get(OBC.FragmentsManager);
     const models = fragmentManager.groups.values();
 
@@ -26,7 +35,7 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
       await OBC.IfcPropertiesUtils.getRelationMap(
         model,
         WEBIFC.IFCRELDEFINESBYPROPERTIES,
-        async (setID, relatedIDs) => {
+        async (setID) => {
           const set = await model.getProperties(setID);
 
           if (set?.type !== WEBIFC.IFCPROPERTYSET) return;
@@ -55,8 +64,8 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
           );
         },
       );
-      console.log(this._categories);
     }
+    console.log(this._categories);
     return this._categories;
   }
 
