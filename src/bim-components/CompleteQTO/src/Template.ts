@@ -17,6 +17,29 @@ export const categoriesTable = (state: CompleteQTOUIState) => {
   });
 
   categoriesTable.headersHidden = true;
+  categoriesTable.addEventListener("rowcreated", (e) => {
+    const { row } = e.detail;
+    const rowData = row.data as { category?: string };
+
+    // Hover effect
+    row.onmouseover = () => {
+      row.style.backgroundColor = "var(--bim-ui_bg-contrast-20)";
+      row.style.cursor = "pointer";
+    };
+
+    row.onmouseout = () => {
+      row.style.backgroundColor = "";
+    };
+
+    // Click handler
+    row.onclick = () => {
+      if (rowData.category) {
+        console.log("Category clicked:", rowData.category);
+        // Add more click logic here
+      }
+    };
+  });
+
   completeQto.categoriesTable = categoriesTable;
 
   completeQto.onDisposed.add(() => {
