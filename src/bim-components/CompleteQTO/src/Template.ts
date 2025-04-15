@@ -6,40 +6,48 @@ export interface CompleteQTOUIState {
   components: OBC.Components;
 }
 
-export const completeQTOPanel = async (state: CompleteQTOUIState) => {
+export const completeQTOPanel = (state: CompleteQTOUIState) => {
   const { components } = state;
   const completeQto = components.get(CompleteQTO);
-  const categories = completeQto.categories;
 
-  return BUI.Component.create<BUI.PanelSection>(() => {
+  // Create a standalone panel component
+  const panel = BUI.Component.create<BUI.PanelSection>(() => {
+    // This function will re-run whenever the component updates
+    const categories = completeQto.categories; // Get latest categories
+
     const onCategoryClick = (category: string) => {
       console.log(`Category selected: ${category}`);
-      // Add your logic here for what happens when a category is clicked
+      // Add your category click logic here
     };
-
-    const categoryButtons = categories.map(
-      (category) =>
-        BUI.html`
-        <bim-button 
-          label="${category}"
-          @click=${() => onCategoryClick(category)}
-        ></bim-button>
-      `,
-    );
 
     return BUI.html`
       <bim-panel-section
-        name="categories"
-        label="Pick a category to obtain quantities"
-        icon="clarity:calculator-solid"
-        fixed
+      name="categories"
+      label="Pick a category to obtain quantities"
+      icon="clarity:calculator-solid"
+      fixed
       >
-        ${
-          categories.length > 0
-            ? categoryButtons
-            : BUI.html`<div>No categories found</div>`
-        }
+      ${
+        categories.length > 0
+          ? categories.map(
+              (category) =>
+                BUI.html`
+                  <bim-button 
+                  label="${category}"
+                    @click=${() => onCategoryClick(category)}
+                    ></bim-button>
+                    `,
+            )
+          : BUI.html`<div>No categories found</div>`
+      }
       </bim-panel-section>
-    `;
+      `;
   });
+
+  // Set up event listener to update panel when categories change
+  completeQto.onCategoriesChanged.add(() => {
+    panel.requestUpdate();
+  });
+
+  return panel;
 };

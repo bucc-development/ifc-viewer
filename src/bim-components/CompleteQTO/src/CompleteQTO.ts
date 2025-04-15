@@ -5,6 +5,7 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   static uuid = "663bebd3-ed4b-49fb-81ec-2be7c31ce2c2";
   enabled = true;
   onDisposed: OBC.Event<any> = new OBC.Event();
+  onCategoriesChanged: OBC.Event<string[]> = new OBC.Event();
   private _categories: string[] = [];
 
   get categories(): string[] {
@@ -18,6 +19,7 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
 
   resetCategories() {
     this._categories = [];
+    this.onCategoriesChanged.trigger(this._categories);
   }
 
   async getCategories(): Promise<string[]> {
@@ -65,13 +67,17 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
         },
       );
     }
-    console.log(this._categories);
+    console.log("Categories updated:", this._categories);
+    this.onCategoriesChanged.trigger(this._categories);
     return this._categories;
   }
 
+  // updateCategories;
+
   dispose() {
-    this._categories = [];
+    this.resetCategories();
     this.onDisposed.trigger();
     this.onDisposed.reset();
+    this.onCategoriesChanged.reset();
   }
 }

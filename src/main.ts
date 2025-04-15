@@ -134,8 +134,8 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
     const qtoPanel = simpleQtoPanel(components);
-    const customTreePanel = customRelTree(components);
     const completeQTOPanel = CompleteQTOPanel(components);
+    const customTreePanel = customRelTree(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
