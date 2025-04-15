@@ -1,15 +1,22 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
-import { completeQTOPanel } from "../../bim-components/CompleteQTO/src/Template";
+import { categoriesTable } from "../../bim-components/CompleteQTO/src/Template";
 
 export default (components: OBC.Components) => {
-  const completeQTOPanelSection = completeQTOPanel({ components });
+  const completeQTOTable = categoriesTable({ components });
 
   return BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
-        <bim-panel>
-            ${completeQTOPanelSection}
-        </bim-panel>
-      `;
+      <bim-panel>
+        <bim-panel-section  
+          name="categories"
+          label="Pick a Category for the Quantity Take-Off"
+          icon="clarity:calculator-solid"
+          fixed
+        >
+          ${completeQTOTable}
+        </bim-panel-section>
+      </bim-panel>
+    `;
   });
 };

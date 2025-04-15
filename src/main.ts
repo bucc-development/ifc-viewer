@@ -222,8 +222,8 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
             @click=${onShowSimpleQuantity}  
             ></bim-button>
             <bim-button 
-            tooltip-title="Create Quantity Takeoff" 
-            tooltip-text="Open Custom Table to generate a complete Quantity Takeoff"
+            tooltip-title="Create Quantity Take-Off" 
+            tooltip-text="Open Custom Table to generate a complete Quantity Take-Off"
             icon="clarity:calculator-solid"
             @click=${onShowCompleteQuantity}  
             ></bim-button>

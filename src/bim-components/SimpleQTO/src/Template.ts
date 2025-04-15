@@ -12,8 +12,8 @@ export const simpleQTOTool = (state: QTOUIState) => {
 
   const qtoTable = BUI.Component.create<BUI.Table>(() => {
     return BUI.html`
-          <bim-table></bim-table>
-      `;
+      <bim-table></bim-table>
+    `;
   });
 
   qtoTable.headersHidden = true;

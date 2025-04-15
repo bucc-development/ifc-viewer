@@ -1,12 +1,20 @@
 import * as OBC from "@thatopen/components";
+import * as BUI from "@thatopen/ui";
 import * as WEBIFC from "web-ifc";
+
+type CategoryTableGroupData = {
+  data: {
+    category?: string;
+  };
+  children?: CategoryTableGroupData[];
+};
 
 export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   static uuid = "663bebd3-ed4b-49fb-81ec-2be7c31ce2c2";
   enabled = true;
   onDisposed: OBC.Event<any> = new OBC.Event();
-  onCategoriesChanged: OBC.Event<string[]> = new OBC.Event();
   private _categories: string[] = [];
+  categoriesTable: BUI.Table | undefined;
 
   get categories(): string[] {
     return this._categories;
@@ -19,10 +27,9 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
 
   resetCategories() {
     this._categories = [];
-    this.onCategoriesChanged.trigger(this._categories);
   }
 
-  async getCategories(): Promise<string[]> {
+  async getCategories() {
     const mainCategory = "Name";
     this.resetCategories();
     const fragmentManager = this.components.get(OBC.FragmentsManager);
@@ -68,16 +75,36 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
       );
     }
     console.log("Categories updated:", this._categories);
-    this.onCategoriesChanged.trigger(this._categories);
-    return this._categories;
+    setTimeout(async () => {
+      this.updateCategoriesTable();
+    }, 50);
   }
 
-  // updateCategories;
+  updateCategoriesTable() {
+    if (!this.categoriesTable) return;
 
+    const categoriesData: CategoryTableGroupData[] = [];
+
+    // Sort categories alphabetically
+    const sortedCategories = [...this._categories].sort((a, b) =>
+      a.localeCompare(b),
+    );
+
+    // Create table data structure
+    for (const category of sortedCategories) {
+      categoriesData.push({
+        data: {
+          category,
+        },
+      });
+    }
+
+    this.categoriesTable.data = categoriesData;
+  }
   dispose() {
     this.resetCategories();
+    this.categoriesTable = undefined;
     this.onDisposed.trigger();
     this.onDisposed.reset();
-    this.onCategoriesChanged.reset();
   }
 }

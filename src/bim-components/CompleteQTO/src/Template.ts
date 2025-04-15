@@ -6,48 +6,22 @@ export interface CompleteQTOUIState {
   components: OBC.Components;
 }
 
-export const completeQTOPanel = (state: CompleteQTOUIState) => {
+export const categoriesTable = (state: CompleteQTOUIState) => {
   const { components } = state;
   const completeQto = components.get(CompleteQTO);
 
-  // Create a standalone panel component
-  const panel = BUI.Component.create<BUI.PanelSection>(() => {
-    // This function will re-run whenever the component updates
-    const categories = completeQto.categories; // Get latest categories
-
-    const onCategoryClick = (category: string) => {
-      console.log(`Category selected: ${category}`);
-      // Add your category click logic here
-    };
-
+  const categoriesTable = BUI.Component.create<BUI.Table>(() => {
     return BUI.html`
-      <bim-panel-section
-      name="categories"
-      label="Pick a category to obtain quantities"
-      icon="clarity:calculator-solid"
-      fixed
-      >
-      ${
-        categories.length > 0
-          ? categories.map(
-              (category) =>
-                BUI.html`
-                  <bim-button 
-                  label="${category}"
-                    @click=${() => onCategoryClick(category)}
-                    ></bim-button>
-                    `,
-            )
-          : BUI.html`<div>No categories found</div>`
-      }
-      </bim-panel-section>
-      `;
+      <bim-table></bim-table>
+    `;
   });
 
-  // Set up event listener to update panel when categories change
-  completeQto.onCategoriesChanged.add(() => {
-    panel.requestUpdate();
+  categoriesTable.headersHidden = true;
+  completeQto.categoriesTable = categoriesTable;
+
+  completeQto.onDisposed.add(() => {
+    categoriesTable.remove();
   });
 
-  return panel;
+  return categoriesTable;
 };
