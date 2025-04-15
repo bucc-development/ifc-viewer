@@ -36,6 +36,7 @@ export const categoriesTable = (state: CompleteQTOUIState) => {
       if (rowData.category) {
         console.log("Category clicked:", rowData.category);
         // Add more click logic here
+        completeQto.getCleanElementsJSON(rowData.category);
       }
     };
   });
