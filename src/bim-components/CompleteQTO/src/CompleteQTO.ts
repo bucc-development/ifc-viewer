@@ -1,7 +1,7 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 import * as WEBIFC from "web-ifc";
-import { BUILDING_ELEMENT_TYPES } from "./BuildingTypes";
+// import { BUILDING_ELEMENT_TYPES } from "./BuildingTypes";
 
 type CategoryTableGroupData = {
   data: {
@@ -10,29 +10,29 @@ type CategoryTableGroupData = {
   children?: CategoryTableGroupData[];
 };
 
-type QTOTableGroupData = {
-  [modelUUID: string]: {
-    modelName: string;
-    elements: {
-      [expressID: string]: {
-        type: string;
-        name: string;
-        globalId: string;
-        category?: string;
-        psets: {
-          [psetName: string]: {
-            [propName: string]: any;
-          };
-        };
-        quantitysets: {
-          [psetName: string]: {
-            [propName: string]: any;
-          };
-        };
-      };
-    };
-  };
-};
+// type QTOTableGroupData = {
+//   [modelUUID: string]: {
+//     modelName: string;
+//     elements: {
+//       [expressID: string]: {
+//         type: string;
+//         name: string;
+//         globalId: string;
+//         category?: string;
+//         psets: {
+//           [psetName: string]: {
+//             [propName: string]: any;
+//           };
+//         };
+//         quantitysets: {
+//           [psetName: string]: {
+//             [propName: string]: any;
+//           };
+//         };
+//       };
+//     };
+//   };
+// };
 
 export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   static uuid = "663bebd3-ed4b-49fb-81ec-2be7c31ce2c2";
@@ -142,15 +142,15 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
         model,
         WEBIFC.IFCRELDEFINESBYPROPERTIES,
         async (setID) => {
-          const set = await model.getProperties(setID);
+          // const set = await model.getProperties(setID);
           await OBC.IfcPropertiesUtils.getPsetProps(
             model,
             setID,
             async (propertyID) => {
-              const name = await OBC.IfcPropertiesUtils.getEntityName(
-                model,
-                propertyID,
-              );
+              // const name = await OBC.IfcPropertiesUtils.getEntityName(
+              //   model,
+              //   propertyID,
+              // );
               const value = await OBC.IfcPropertiesUtils.getQuantityValue(
                 model,
                 propertyID,
@@ -165,49 +165,22 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
           );
         },
       );
-
-      // for (const expressID of expressIDs) {
-      //   const props = await model.getProperties(expressID);
-      //   if (!props || !props.type) continue;
-
-      // Skip non-product elements (similar to IfcProduct filter)
-      // if (!this.isBuildingElement(props?.type)) continue;
-      //   // Extract basic info
-      //   const elementInfo = {
-      //     type: props.type,
-      //     name: props.Name.value,
-      //     globalId: props.GlobalId.value,
-      //     // category: this.extractCategory(props),
-      //     psets: {} as Record<string, Record<string, any>>,
-      //   };
-
-      //   console.log("Element info:", elementInfo);
-
-      // // Process property sets
-      // await this.processPropertySets(model, expressID, elementInfo.psets);
-
-      // // Apply category filter if specified
-      // if (!category || elementInfo.category === category) {
-      //   result[modelKey].elements[expressID] = elementInfo;
-      // }
-      // }
     }
 
     return result;
   }
 
-  private isBuildingElement(type: string | number): boolean {
-    if (
-      Array.isArray(BUILDING_ELEMENT_TYPES) &&
-      typeof type === "number" &&
-      BUILDING_ELEMENT_TYPES.includes(type)
-    ) {
-      console.log("Element type number:", type);
-      // Check if type number corresponds to IfcProduct
-      return true; // You'd need IFC type mapping here
-    }
-    return false;
-  }
+  // private isBuildingElement(type: string | number): boolean {
+  //   if (
+  //     Array.isArray(BUILDING_ELEMENT_TYPES) &&
+  //     typeof type === "number" &&
+  //     BUILDING_ELEMENT_TYPES.includes(type)
+  //   ) {
+  //     console.log("Element type number:", type);
+  //     return true;
+  //   }
+  //   return false;
+  // }
 
   dispose() {
     this.resetCategories();
