@@ -16,6 +16,8 @@ export const qtoTool = (state: QTOUIState) => {
       `;
   });
 
+  qtoTable.headersHidden = true;
+  // qtoTable.hiddenColumns = ["Set"];
   qtoTable.dataTransform = {
     Value: (value: string | number | boolean) => {
       if (typeof value === "number") {
@@ -23,14 +25,14 @@ export const qtoTool = (state: QTOUIState) => {
       }
       return value;
     },
+    Unit: (value: string | number | boolean) => value || "-",
   };
 
   simpleQto.table = qtoTable;
 
-  // simpleQto.onDisposed.add(() => {
-  //   qtoTable.data = [];
-  //   qtoTable.remove();
-  // });
+  simpleQto.onDisposed.add(() => {
+    qtoTable.remove();
+  });
 
   return qtoTable;
 };

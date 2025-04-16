@@ -1,9 +1,15 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
-import { qtoTool } from "../../bim-components/SimpleQTO copy/src/Template";
+import * as OBF from "@thatopen/components-front";
+import { qtoTool } from "../../bim-components/SimpleQTO/src/Template";
 
 export default (components: OBC.Components) => {
+  const highlighter = components.get(OBF.Highlighter);
   const qtoTable = qtoTool({ components });
+
+  highlighter.events.select.onHighlight.add(() => {
+    qtoTable.expanded = true;
+  });
 
   const search = (e: Event) => {
     const input = e.target as BUI.TextInput;

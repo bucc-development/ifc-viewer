@@ -9,17 +9,19 @@ import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
 import { AppManager } from "./bim-components";
-import { SimpleQTO } from "./bim-components/SimpleQTO copy/src/SimpleQTO";
+import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
 
 import "./style.css";
 import QTO from "./components/Panels/QTO";
+import { customRelTree } from "./components/Panels/CustomRelTree";
+import { CustomTree } from "./bim-components/CustomTree";
 
 // Initialize application
 (async () => {
   try {
     // Set initial theme based on system preference
     const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
+      "(prefers-color-scheme: dark)",
     ).matches;
     document.documentElement.className = prefersDark
       ? "bim-ui-dark"
@@ -115,10 +117,17 @@ import QTO from "./components/Panels/QTO";
       tilesLoader.culler.needsUpdate = true;
     });
 
+    // When models are loaded or changed
+    fragments.onFragmentsLoaded.add(() => {
+      const customTree = components.get(CustomTree);
+      customTree.update({ models: fragments.groups.values() });
+    });
+
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
     const qtoPanel = QTO(components);
+    const customTreePanel = customRelTree(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -132,6 +141,16 @@ import QTO from "./components/Panels/QTO";
         </bim-tabs> 
       `;
     });
+
+    const onShowProperty = (): void => {
+      if (!viewportGrid) return;
+
+      if (viewportGrid.layout !== "second") {
+        viewportGrid.layout = "second";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
 
     const onShowQuantity = async () => {
       if (!components) return;
@@ -152,21 +171,44 @@ import QTO from "./components/Panels/QTO";
       }
     };
 
+    const onShowCustomTree = async () => {
+      if (!viewportGrid) {
+        console.warn("QTO panel not ready yet");
+        return;
+      }
+      if (viewportGrid.layout !== "customTree") {
+        viewportGrid.layout = "customTree";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
+
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
           ${load(components)}
+          <bim-toolbar-section label="Properties" icon="clarity:nodes-line">
+            <bim-button 
+              tooltip-title="Properties" 
+              tooltip-text="Show properties of the highlighted elements."
+              icon="clarity:list-line"
+              @click=${onShowProperty}
+            ></bim-button>
+            <bim-button 
+            tooltip-title="Simple Quantities" 
+            tooltip-text="Adds up the quantities of all selected elements"
+            icon="mdi:summation"
+            @click=${onShowQuantity}  
+            ></bim-button>
+            <!-- <bim-button 
+            tooltip-title="Classification" 
+            tooltip-text="Shows classification tree for the loaded model."
+            icon="clarity:tree-view-line"
+            @click=${onShowCustomTree}
+            ></bim-button> -->
+          </bim-toolbar-section>
           ${camera(world)}
           ${selection(components, world)}
-          <bim-toolbar-section label="Quantities" icon="solar:import-bold">
-            <bim-button 
-            label="Total Quantities"
-            tooltip-title="Sum quantities" 
-            tooltip-text="Adds up the quantities of the selected elements"
-            icon="mdi:summation"
-            @click=${onShowQuantity}
-            ></bim-button>
-          </bim-toolbar-section>
         </bim-toolbar>
       `;
     });
@@ -203,7 +245,7 @@ import QTO from "./components/Panels/QTO";
       second: {
         template: `
           "empty elementDataPanel" 1fr
-          "toolbar elementDataPanel" auto
+          "toolbar toolbar" auto
           /1fr 24rem
         `,
         elements: {
@@ -214,12 +256,23 @@ import QTO from "./components/Panels/QTO";
       qtos: {
         template: `
           "empty qtoPanel" 1fr
-          "toolbar qtoPanel" auto
+          "toolbar toolbar" auto
           /1fr 24rem
         `,
         elements: {
           toolbar,
           qtoPanel,
+        },
+      },
+      customTree: {
+        template: `
+          "empty customTreePanel" 1fr
+          "toolbar toolbar" auto
+          /1fr 24rem
+        `,
+        elements: {
+          toolbar,
+          customTreePanel,
         },
       },
     };
