@@ -221,7 +221,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
             icon="mdi:summation"
             @click=${onShowSimpleQuantity}  
             ></bim-button>
-            <!-- <bim-button 
+            <bim-button 
             tooltip-title="Create Quantity Take-Off" 
             tooltip-text="Open Custom Table to generate a complete Quantity Take-Off"
             icon="clarity:calculator-solid"
@@ -232,7 +232,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
             tooltip-text="Shows classification tree for the loaded model."
             icon="clarity:tree-view-line"
             @click=${onShowCustomTree}
-            ></bim-button> -->
+            ></bim-button>
           </bim-toolbar-section>
           ${camera(world)}
           ${selection(components, world)}

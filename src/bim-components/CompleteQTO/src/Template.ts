@@ -49,3 +49,22 @@ export const categoriesTable = (state: CompleteQTOUIState) => {
 
   return categoriesTable;
 };
+
+export const QTOTable = (state: CompleteQTOUIState) => {
+  const { components } = state;
+  const completeQto = components.get(CompleteQTO);
+
+  const fullQTOTable = BUI.Component.create<BUI.Table>(() => {
+    return BUI.html`
+      <bim-table></bim-table>
+    `;
+  });
+
+  completeQto.fullQTOTable = fullQTOTable;
+
+  completeQto.onDisposed.add(() => {
+    fullQTOTable.remove();
+  });
+
+  return fullQTOTable;
+};

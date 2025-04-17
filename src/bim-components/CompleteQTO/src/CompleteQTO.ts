@@ -40,6 +40,7 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   onDisposed: OBC.Event<any> = new OBC.Event();
   private _categories: string[] = [];
   categoriesTable: BUI.Table | undefined;
+  fullQTOTable: BUI.Table | undefined;
   // private mainCategory = "Category";
   private mainCategory = "Name";
 
@@ -169,18 +170,6 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
 
     return result;
   }
-
-  // private isBuildingElement(type: string | number): boolean {
-  //   if (
-  //     Array.isArray(BUILDING_ELEMENT_TYPES) &&
-  //     typeof type === "number" &&
-  //     BUILDING_ELEMENT_TYPES.includes(type)
-  //   ) {
-  //     console.log("Element type number:", type);
-  //     return true;
-  //   }
-  //   return false;
-  // }
 
   dispose() {
     this.resetCategories();
