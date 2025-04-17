@@ -98,6 +98,7 @@ export class SimpleQTO extends OBC.Component implements OBC.Disposable {
 
                 if (!qtoName || value === undefined) return;
 
+                // CHANGE FOR OBC.IfcPropertiesUtils.getUnits
                 const unit = this.detectUnit(qtoName);
 
                 if (!(qtoName in this._qtoResult[setName])) {
