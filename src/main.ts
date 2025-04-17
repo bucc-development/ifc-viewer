@@ -1,21 +1,21 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 
 import projectInformation from "./components/Panels/ProjectInformation";
-import elementData from "./components/Panels/Selection";
+// import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
-import simpleQtoPanel from "./components/Panels/SimpleQTO";
-import customRelTree from "./components/Panels/CustomRelTree";
+// import simpleQtoPanel from "./components/Panels/SimpleQTO";
+// import customRelTree from "./components/Panels/CustomRelTree";
 import CompleteQTOPanel from "./components/Panels/CompleteQTO";
 
-import load from "./components/Toolbars/Sections/Import";
-import camera from "./components/Toolbars/Sections/Camera";
-import selection from "./components/Toolbars/Sections/Selection";
+import loadFrags from "./components/Toolbars/Sections/fragments";
+// import load from "./components/Toolbars/Sections/Import";
+// import camera from "./components/Toolbars/Sections/Camera";
+// import selection from "./components/Toolbars/Sections/Selection";
 
 import { AppManager } from "./bim-components/AppManager";
-import { SimpleQTO } from "./bim-components/SimpleQTO";
+// import { SimpleQTO } from "./bim-components/SimpleQTO";
 // import { CustomTree } from "./bim-components/CustomTree";
 
 import "./style.css";
@@ -49,12 +49,12 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const world = worlds.create<
       OBC.SimpleScene,
       OBC.OrthoPerspectiveCamera,
-      OBF.PostproductionRenderer
+      OBC.SimpleRenderer
     >();
     world.name = "Main";
 
     world.scene = new OBC.SimpleScene(components);
-    await world.scene.setup();
+    world.scene.setup();
     world.scene.three.background = null;
 
     const viewport = BUI.Component.create<BUI.Viewport>(() => {
@@ -65,8 +65,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       `;
     });
 
-    world.renderer = new OBF.PostproductionRenderer(components, viewport);
-    const { postproduction } = world.renderer;
+    world.renderer = new OBC.SimpleRenderer(components, viewport);
 
     world.camera = new OBC.OrthoPerspectiveCamera(components);
 
@@ -84,10 +83,10 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
 
     await components.init();
 
-    postproduction.enabled = true;
-    postproduction.customEffects.excludedMeshes.push(worldGrid.three);
-    postproduction.setPasses({ custom: true, ao: true, gamma: true });
-    postproduction.customEffects.lineColor = 0x17191c;
+    // world.renderer.enabled = true;
+    // world.renderer.customEffects.excludedMeshes.push(worldGrid.three);
+    // world.renderer.setPasses({ custom: true, ao: true, gamma: true });
+    // world.renderer.customEffects.lineColor = 0x17191c;
 
     const appManager = components.get(AppManager);
     const viewportGrid =
@@ -102,25 +101,25 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const ifcLoader = components.get(OBC.IfcLoader);
     await ifcLoader.setup();
 
-    const tilesLoader = components.get(OBF.IfcStreamer);
-    tilesLoader.url = "./resources/tiles/"; // Updated path
-    tilesLoader.world = world;
-    tilesLoader.culler.threshold = 10;
-    tilesLoader.culler.maxHiddenTime = 1000;
-    tilesLoader.culler.maxLostTime = 40000;
+    // const tilesLoader = components.get(OBF.IfcStreamer);
+    // tilesLoader.url = "./resources/tiles/"; // Updated path
+    // tilesLoader.world = world;
+    // tilesLoader.culler.threshold = 10;
+    // tilesLoader.culler.maxHiddenTime = 1000;
+    // tilesLoader.culler.maxLostTime = 40000;
 
-    const highlighter = components.get(OBF.Highlighter);
-    await highlighter.setup({ world });
-    highlighter.zoomToSelection = true;
+    // const highlighter = components.get(OBF.Highlighter);
+    // await highlighter.setup({ world });
+    // highlighter.zoomToSelection = true;
 
-    const culler = components.get(OBC.Cullers).create(world);
-    culler.threshold = 5;
+    // const culler = components.get(OBC.Cullers).create(world);
+    // culler.threshold = 5;
 
-    world.camera.controls.restThreshold = 0.25;
-    world.camera.controls.addEventListener("rest", () => {
-      culler.needsUpdate = true;
-      tilesLoader.culler.needsUpdate = true;
-    });
+    // world.camera.controls.restThreshold = 0.25;
+    // world.camera.controls.addEventListener("rest", () => {
+    //   culler.needsUpdate = true;
+    //   tilesLoader.culler.needsUpdate = true;
+    // });
 
     // When models are loaded or changed
     fragments.onFragmentsLoaded.add(async () => {
@@ -132,10 +131,10 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
 
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
-    const elementDataPanel = elementData(components);
-    const qtoPanel = simpleQtoPanel(components);
+    // const elementDataPanel = elementData(components);
+    // const qtoPanel = simpleQtoPanel(components);
     const completeQTOPanel = CompleteQTOPanel(components);
-    const customTreePanel = customRelTree(components);
+    // const customTreePanel = customRelTree(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -163,10 +162,10 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const onShowSimpleQuantity = async () => {
       if (!components) return;
 
-      const highlighter = components.get(OBF.Highlighter);
-      const selection = highlighter.selection.select;
-      const simpleQto = components.get(SimpleQTO);
-      await simpleQto.sumQuantities(selection);
+      // const highlighter = components.get(OBF.Highlighter);
+      // const selection = highlighter.selection.select;
+      // const simpleQto = components.get(SimpleQTO);
+      // await simpleQto.sumQuantities(selection);
 
       if (!viewportGrid) {
         console.warn("QTO panel not ready yet");
@@ -204,38 +203,46 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       }
     };
 
+    // const toolbar = BUI.Component.create(() => {
+    //   return BUI.html`
+    //     <bim-toolbar>
+    //       ${load(components)}
+    //       <bim-toolbar-section label="Properties" icon="clarity:nodes-line">
+    //         <bim-button
+    //           tooltip-title="Properties"
+    //           tooltip-text="Show properties of the highlighted elements."
+    //           icon="clarity:list-solid"
+    //           @click=${onShowProperty}
+    //         ></bim-button>
+    //         <bim-button
+    //         tooltip-title="Simple Quantities"
+    //         tooltip-text="Adds up the quantities of all selected elements"
+    //         icon="mdi:summation"
+    //         @click=${onShowSimpleQuantity}
+    //         ></bim-button>
+    //         <!-- <bim-button
+    //         tooltip-title="Create Quantity Take-Off"
+    //         tooltip-text="Open Custom Table to generate a complete Quantity Take-Off"
+    //         icon="clarity:calculator-solid"
+    //         @click=${onShowCompleteQuantity}
+    //         ></bim-button>
+    //         <bim-button
+    //         tooltip-title="Classification"
+    //         tooltip-text="Shows classification tree for the loaded model."
+    //         icon="clarity:tree-view-line"
+    //         @click=${onShowCustomTree}
+    //         ></bim-button> -->
+    //       </bim-toolbar-section>
+    //       ${camera(world)}
+    //       ${selection(components, world)}
+    //     </bim-toolbar>
+    //   `;
+    // });
+
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
-          ${load(components)}
-          <bim-toolbar-section label="Properties" icon="clarity:nodes-line">
-            <bim-button 
-              tooltip-title="Properties" 
-              tooltip-text="Show properties of the highlighted elements."
-              icon="clarity:list-solid"
-              @click=${onShowProperty}
-            ></bim-button>
-            <bim-button 
-            tooltip-title="Simple Quantities" 
-            tooltip-text="Adds up the quantities of all selected elements"
-            icon="mdi:summation"
-            @click=${onShowSimpleQuantity}  
-            ></bim-button>
-            <!-- <bim-button 
-            tooltip-title="Create Quantity Take-Off" 
-            tooltip-text="Open Custom Table to generate a complete Quantity Take-Off"
-            icon="clarity:calculator-solid"
-            @click=${onShowCompleteQuantity}  
-            ></bim-button>
-            <bim-button 
-            tooltip-title="Classification" 
-            tooltip-text="Shows classification tree for the loaded model."
-            icon="clarity:tree-view-line"
-            @click=${onShowCustomTree}
-            ></bim-button> -->
-          </bim-toolbar-section>
-          ${camera(world)}
-          ${selection(components, world)}
+          ${loadFrags(components, world)}
         </bim-toolbar>
       `;
     });
@@ -269,39 +276,39 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
         `,
         elements: { toolbar },
       },
-      second: {
-        template: `
-          "empty elementDataPanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          elementDataPanel,
-        },
-      },
-      qtos: {
-        template: `
-          "empty qtoPanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          qtoPanel,
-        },
-      },
-      customTree: {
-        template: `
-          "empty customTreePanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          customTreePanel,
-        },
-      },
+      // second: {
+      //   template: `
+      //     "empty elementDataPanel" 1fr
+      //     "toolbar toolbar" auto
+      //     /1fr 24rem
+      //   `,
+      //   elements: {
+      //     toolbar,
+      //     elementDataPanel,
+      //   },
+      // },
+      // qtos: {
+      //   template: `
+      //     "empty qtoPanel" 1fr
+      //     "toolbar toolbar" auto
+      //     /1fr 24rem
+      //   `,
+      //   elements: {
+      //     toolbar,
+      //     qtoPanel,
+      //   },
+      // },
+      // customTree: {
+      //   template: `
+      //     "empty customTreePanel" 1fr
+      //     "toolbar toolbar" auto
+      //     /1fr 24rem
+      //   `,
+      //   elements: {
+      //     toolbar,
+      //     customTreePanel,
+      //   },
+      // },
       qtoCategories: {
         template: `
           "empty completeQTOPanel" 1fr
@@ -372,7 +379,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
 
       for (const fragment of model.items) {
         world.meshes.add(fragment.mesh);
-        culler.add(fragment.mesh);
+        // culler.add(fragment.mesh);
       }
 
       world.scene.three.add(model);

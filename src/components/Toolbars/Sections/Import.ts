@@ -1,6 +1,5 @@
 /* eslint-disable no-alert */
 import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 import * as CUI from "@thatopen/ui-obc";
 import * as FRAGS from "@thatopen/fragments";

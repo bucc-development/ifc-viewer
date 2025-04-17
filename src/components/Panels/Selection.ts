@@ -1,6 +1,6 @@
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
+// import * as OBF from "@thatopen/components-front";
 import * as CUI from "@thatopen/ui-obc";
 import { AppManager } from "../../bim-components";
 import { SimpleQTO } from "../../bim-components/SimpleQTO";
