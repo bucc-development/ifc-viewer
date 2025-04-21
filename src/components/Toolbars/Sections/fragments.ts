@@ -9,6 +9,7 @@ export default (
     OBC.OrthoPerspectiveCamera,
     OBC.SimpleRenderer
   >,
+  fragments: FRAGS.FragmentsModels,
 ) => {
   const serializer = new FRAGS.IfcImporter();
   serializer.wasm = {
@@ -29,16 +30,6 @@ export default (
   };
 
   const onLoadIFC = async () => {
-    const workerUrl =
-      "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
-    const fetchedWorker = await fetch(workerUrl);
-    const workerText = await fetchedWorker.text();
-    const workerFile = new File([new Blob([workerText])], "worker.mjs", {
-      type: "text/javascript",
-    });
-    const url = URL.createObjectURL(workerFile);
-    const fragments = new FRAGS.FragmentsModels(url);
-
     // ask for ifc file
     const input = document.createElement("input");
     input.type = "file";
@@ -78,8 +69,6 @@ export default (
 
     try {
       const binary = await fileRead;
-      const originalSize = binary.byteLength;
-      console.log(`Original IFC file size: ${originalSize} bytes`);
 
       // Convert IFC to fragments first
       const fragmentBinary = new Uint8Array(binary);
@@ -126,17 +115,6 @@ export default (
   };
 
   const onLoadFrag = async () => {
-    // Set up fragment loader with worker
-    const workerUrl =
-      "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
-    const fetchedWorker = await fetch(workerUrl);
-    const workerText = await fetchedWorker.text();
-    const workerFile = new File([new Blob([workerText])], "worker.mjs", {
-      type: "text/javascript",
-    });
-    const url = URL.createObjectURL(workerFile);
-    const fragments = new FRAGS.FragmentsModels(url);
-
     // ask for fragment file
     const input = document.createElement("input");
     input.type = "file";

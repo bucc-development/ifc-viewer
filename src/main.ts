@@ -21,6 +21,7 @@ import { AppManager } from "./bim-components/AppManager";
 
 import "./style.css";
 import { CompleteQTO } from "./bim-components/CompleteQTO";
+import Raycaster from "./components/Raycaster";
 
 // Initialize application
 (async () => {
@@ -94,7 +95,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
     appManager.grids.set("viewport", viewportGrid);
 
-    const fragments = components.get(OBC.FragmentsManager);
+    // const fragments = components.get(OBC.FragmentsManager);
     const indexer = components.get(OBC.IfcRelationsIndexer);
     const classifier = components.get(OBC.Classifier);
     classifier.list.CustomSelections = {};
@@ -138,130 +139,54 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       type: "text/javascript",
     });
     const url = URL.createObjectURL(workerFile);
-    const frags = new FRAGS.FragmentsModels(url);
-    world.camera.controls.addEventListener("rest", () => frags.update(true));
-    world.camera.controls.addEventListener("update", () => frags.update());
+    const fragments = new FRAGS.FragmentsModels(url);
+    world.camera.controls.addEventListener("rest", () =>
+      fragments.update(true),
+    );
+    world.camera.controls.addEventListener("update", () => fragments.update());
 
-    frags.models.list.onItemSet.add(async ({ value: model }) => {
+    // Test cube for clipper/raycaster
+    const cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
+    const cubeMaterial = new THREE.MeshStandardMaterial({ color: "#6528D7" });
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.set(0, 2.5, 0);
+    world.scene.three.add(cube);
+    world.meshes.add(cube); // Crucial for clipper to work
+
+    fragments.models.list.onItemSet.add(async ({ value: model }) => {
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
-      // At the end, you tell fragments to update so the model can be seen given
-      // the initial camera position
-      frags.update(true);
+
+      // Add all fragment meshes to world.meshes
+      model.object.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          world.meshes.add(child);
+        }
+      });
+
+      await fragments.update(true);
+      Raycaster(components, world, fragments, viewport, model);
       const completeQTO = components.get(CompleteQTO);
       await completeQTO.getCategories();
     });
 
-    const casters = components.get(OBC.Raycasters);
-    casters.get(world);
+    // const clipper = components.get(OBC.Clipper);
+    // clipper.enabled = true;
 
-    const clipper = components.get(OBC.Clipper);
-    clipper.enabled = true;
-    viewport.ondblclick = () => {
-      if (clipper.enabled) {
-        clipper.create(world);
-        console.log(clipper);
-      }
-    };
+    // viewport.ondblclick = () => {
+    //   if (clipper.enabled) {
+    //     clipper.create(world);
+    //     console.log(clipper);
+    //   }
+    // };
 
-    window.onkeydown = (event) => {
-      if (event.code === "Delete" || event.code === "Backspace") {
-        if (clipper.enabled) {
-          clipper.delete(world);
-        }
-      }
-    };
-
-    const raycast = async (data: {
-      camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
-      mouse: THREE.Vector2;
-      dom: HTMLCanvasElement;
-    }) => {
-      const results = [];
-      for (const [_, model] of frags.models.list) {
-        const result = await model.raycast(data);
-        if (result) {
-          results.push(result);
-        }
-      }
-      await Promise.all(results);
-      if (results.length === 0) return null;
-
-      // Find result with smallest distance
-      let closestResult = results[0];
-      let minDistance = closestResult.distance;
-
-      for (let i = 1; i < results.length; i++) {
-        if (results[i].distance < minDistance) {
-          minDistance = results[i].distance;
-          closestResult = results[i];
-        }
-      }
-
-      return closestResult;
-    };
-
-    const mouse = new THREE.Vector2();
-
-    let onRaycastHoverResult = (_result: FRAGS.RaycastResult | null) => {};
-    viewport.addEventListener("pointermove", async (event) => {
-      mouse.x = event.clientX;
-      mouse.y = event.clientY;
-      const result = await raycast({
-        camera: world.camera.three,
-        mouse,
-        dom: world.renderer!.three.domElement!,
-      });
-      onRaycastHoverResult(result);
-    });
-
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0, 2),
-    ]);
-
-    const lineMaterial = new THREE.LineBasicMaterial({ color: "#6528d7" });
-    const line = new THREE.Line(lineGeometry, lineMaterial);
-    world.scene.three.add(line);
-
-    onRaycastHoverResult = (result) => {
-      line.visible = !!result;
-      if (!result) return;
-      console.log(result);
-      const { point, normal } = result;
-      if (!normal) return;
-      line.position.copy(point);
-      const look = point.clone().add(normal);
-      line.lookAt(look);
-    };
-
-    let onRaycastClickResult = (_result: FRAGS.RaycastResult | null) => {};
-    viewport.addEventListener("click", async (event) => {
-      mouse.x = event.clientX;
-      mouse.y = event.clientY;
-      const result = await raycast({
-        camera: world.camera.three,
-        mouse,
-        dom: world.renderer!.three.domElement!,
-      });
-      onRaycastClickResult(result);
-    });
-
-    const sphereGeometry = new THREE.SphereGeometry(0.4);
-
-    const sphereMaterial = new THREE.MeshLambertMaterial({
-      color: "#bcf124",
-      transparent: true,
-      opacity: 0.8,
-    });
-
-    onRaycastClickResult = (result) => {
-      if (!result) return;
-      const { point } = result;
-      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      sphere.position.copy(point);
-      world.scene.three.add(sphere);
-    };
+    // window.onkeydown = (event) => {
+    //   if (event.code === "Delete" || event.code === "Backspace") {
+    //     if (clipper.enabled) {
+    //       clipper.delete(world);
+    //     }
+    //   }
+    // };
 
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
@@ -376,7 +301,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
-          ${loadFrags(components, world)}
+          ${loadFrags(components, world, fragments)}
         </bim-toolbar>
       `;
     });
@@ -504,30 +429,30 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       }
     });
 
-    // Initialize fragment handlers
-    fragments.onFragmentsLoaded.add(async (model) => {
-      if (model.hasProperties) {
-        await indexer.process(model);
-        classifier.byEntity(model);
-      }
+    // // Initialize fragment handlers
+    // fragments.onFragmentsLoaded.add(async (model) => {
+    //   if (model.hasProperties) {
+    //     await indexer.process(model);
+    //     classifier.byEntity(model);
+    //   }
 
-      for (const fragment of model.items) {
-        world.meshes.add(fragment.mesh);
-        // culler.add(fragment.mesh);
-      }
+    //   for (const fragment of model.items) {
+    //     world.meshes.add(fragment.mesh);
+    //     // culler.add(fragment.mesh);
+    //   }
 
-      world.scene.three.add(model);
-      setTimeout(async () => {
-        world.camera.fit(world.meshes, 0.8);
-      }, 50);
-    });
+    //   world.scene.three.add(model);
+    //   setTimeout(async () => {
+    //     world.camera.fit(world.meshes, 0.8);
+    //   }, 50);
+    // });
 
-    fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
-      for (const fragmentID of fragmentIDs) {
-        const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
-        if (mesh) world.meshes.delete(mesh);
-      }
-    });
+    // fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
+    //   for (const fragmentID of fragmentIDs) {
+    //     const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
+    //     if (mesh) world.meshes.delete(mesh);
+    //   }
+    // });
 
     // Trigger initial resize
     window.dispatchEvent(new Event("resize"));
