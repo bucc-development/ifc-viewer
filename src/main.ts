@@ -145,14 +145,6 @@ import Raycaster from "./components/Raycaster";
     );
     world.camera.controls.addEventListener("update", () => fragments.update());
 
-    // Test cube for clipper/raycaster
-    const cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
-    const cubeMaterial = new THREE.MeshStandardMaterial({ color: "#6528D7" });
-    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    cube.position.set(0, 2.5, 0);
-    world.scene.three.add(cube);
-    world.meshes.add(cube); // Crucial for clipper to work
-
     fragments.models.list.onItemSet.add(async ({ value: model }) => {
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);
@@ -169,24 +161,6 @@ import Raycaster from "./components/Raycaster";
       const completeQTO = components.get(CompleteQTO);
       await completeQTO.getCategories();
     });
-
-    // const clipper = components.get(OBC.Clipper);
-    // clipper.enabled = true;
-
-    // viewport.ondblclick = () => {
-    //   if (clipper.enabled) {
-    //     clipper.create(world);
-    //     console.log(clipper);
-    //   }
-    // };
-
-    // window.onkeydown = (event) => {
-    //   if (event.code === "Delete" || event.code === "Backspace") {
-    //     if (clipper.enabled) {
-    //       clipper.delete(world);
-    //     }
-    //   }
-    // };
 
     // Setup UI components
     const projectInformationPanel = projectInformation(components);

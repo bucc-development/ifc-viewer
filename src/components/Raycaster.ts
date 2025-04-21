@@ -14,6 +14,28 @@ export default (
   viewport: BUI.Viewport,
   model: FRAGS.FragmentsModel,
 ) => {
+  const highlightMaterial: FRAGS.MaterialDefinition = {
+    color: new THREE.Color("gold"),
+    renderedFaces: FRAGS.RenderedFaces.TWO,
+    opacity: 1,
+    transparent: false,
+  };
+
+  let localId: number | null = null;
+
+  const highlight = async () => {
+    if (!localId) return;
+    await model.highlight([localId], highlightMaterial);
+  };
+
+  const resetHighlight = async () => {
+    if (!localId) return;
+    await model.resetHighlight([localId]);
+  };
+
+  let onItemSelected = () => {};
+  let onItemDeselected = () => {};
+
   const raycast = async (data: {
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
     mouse: THREE.Vector2;
@@ -43,10 +65,6 @@ export default (
     return closestResult;
   };
 
-  /* MD
-  Now, that is just the helper function and we can use it however we like. For demonstration purposes, let's enhance the raycasting functionality to provide more interactivity and feedback to the user. Let's start by defining the pointer move event:
-*/
-
   const mouse = new THREE.Vector2();
 
   let onRaycastHoverResult = (_result: FRAGS.RaycastResult | null) => {};
@@ -61,16 +79,6 @@ export default (
     onRaycastHoverResult(result);
   });
 
-  /* MD
-  :::info Performance Tip!
-
-  Continuously raycasting on every pointer move might seem like the obvious choice, but it can introduce performance bottlenecks. This is because each raycast request is sent to a worker, and there is a small delay for the data to return. A more efficient approach is to trigger raycasting only after the pointer has stopped moving for a short duration.
-
-  :::
-
-  To provide visual feedback, we'll draw a ThreeJS line at the hit position. This line will orient itself to align with the surface normal at the hit point. Additionally, we'll log the raycast result to the console for further inspection:
-*/
-
   const lineGeometry = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(0, 0, 0),
     new THREE.Vector3(0, 0, 2),
@@ -83,17 +91,12 @@ export default (
   onRaycastHoverResult = (result) => {
     line.visible = !!result;
     if (!result) return;
-    console.log(result);
     const { point, normal } = result;
     if (!normal) return;
     line.position.copy(point);
     const look = point.clone().add(normal);
     line.lookAt(look);
   };
-
-  /* MD
-  Let's enhance the interactivity by creating a sphere at the location where the user clicks. This will provide a visual cue for the click position:
-*/
 
   let onRaycastClickResult = (_result: FRAGS.RaycastResult | null) => {};
   viewport.addEventListener("click", async (event) => {
@@ -107,19 +110,50 @@ export default (
     onRaycastClickResult(result);
   });
 
-  const sphereGeometry = new THREE.SphereGeometry(0.4);
-
-  const sphereMaterial = new THREE.MeshLambertMaterial({
-    color: "#bcf124",
-    transparent: true,
-    opacity: 0.8,
-  });
-
-  onRaycastClickResult = (result) => {
-    if (!result) return;
-    const { point } = result;
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.copy(point);
-    world.scene.three.add(sphere);
+  const getAttributes = async (attributes?: string[]) => {
+    if (!localId) return null;
+    const [data] = await model.getItemsData([localId], {
+      attributesDefault: !attributes,
+      attributes,
+    });
+    return data;
   };
+
+  onRaycastClickResult = async (result) => {
+    const promises = [];
+    if (result) {
+      promises.push(resetHighlight());
+      localId = result.localId;
+      onItemSelected();
+      promises.push(highlight());
+      const data = await getAttributes();
+      console.log("Attributes", data);
+    } else {
+      promises.push(resetHighlight());
+      localId = null;
+      onItemDeselected();
+    }
+    promises.push(fragments.update(true));
+    Promise.all(promises);
+  };
+
+  const clipper = components.get(OBC.Clipper);
+  clipper.enabled = true;
+  console.log(model);
+
+  viewport.ondblclick = () => {
+    if (clipper.enabled) {
+      clipper.create(world);
+    }
+  };
+
+  window.onkeydown = (event) => {
+    if (event.code === "Delete" || event.code === "Backspace") {
+      if (clipper.enabled) {
+        clipper.delete(world);
+      }
+    }
+  };
+
+  // world.meshes.add(cube); // Crucial for clipper to work
 };
