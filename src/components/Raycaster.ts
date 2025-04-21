@@ -137,23 +137,24 @@ export default (
     Promise.all(promises);
   };
 
-  const clipper = components.get(OBC.Clipper);
-  clipper.enabled = true;
-  console.log(model);
+  // const clipper = components.get(OBC.Clipper);
+  // clipper.enabled = true;
 
-  viewport.ondblclick = () => {
-    if (clipper.enabled) {
-      clipper.create(world);
-    }
-  };
+  // window.onkeydown = (event) => {
+  //   if (event.code === "Space") {
+  //     if (clipper.enabled) {
+  //       clipper.create(world);
+  //     }
+  //   }
+  // };
 
-  window.onkeydown = (event) => {
-    if (event.code === "Delete" || event.code === "Backspace") {
-      if (clipper.enabled) {
-        clipper.delete(world);
-      }
-    }
-  };
+  // window.onkeydown = (event) => {
+  //   if (event.code === "Delete" || event.code === "Backspace") {
+  //     if (clipper.enabled) {
+  //       clipper.delete(world);
+  //     }
+  //   }
+  // };
 
   // world.meshes.add(cube); // Crucial for clipper to work
 };
