@@ -77,13 +77,11 @@ export default (
     });
 
     try {
-      console.log("Starting IFC loading process...");
       const binary = await fileRead;
       const originalSize = binary.byteLength;
       console.log(`Original IFC file size: ${originalSize} bytes`);
 
       // Convert IFC to fragments first
-      console.log("Converting IFC to fragments...");
       const fragmentBinary = new Uint8Array(binary);
       fragmentBytes = await serializer.process({ bytes: fragmentBinary });
 
@@ -91,20 +89,16 @@ export default (
         throw new Error("Fragment conversion failed - no bytes returned");
       }
 
-      console.log(`Converted fragment size: ${fragmentBytes.byteLength} bytes`);
-
       // Verify the conversion produced valid data
       if (fragmentBytes.byteLength === 0) {
         throw new Error("Fragment conversion produced empty result");
       }
 
       // Load into fragments manager only after successful conversion
-      console.log("Loading fragments into manager...");
       const fragmentsManager = components.get(OBC.FragmentsManager);
       fragmentsManager.load(new Uint8Array(fragmentBytes));
 
       // Load fragments to the viewer
-      console.log("Loading fragments to viewer...");
       const model = await fragments.load(fragmentBytes, { modelId: "example" });
       model.useCamera(world.camera.three);
       world.scene.three.add(model.object);

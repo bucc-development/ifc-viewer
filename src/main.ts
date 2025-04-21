@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
+import * as FRAGS from "@thatopen/fragments";
 
 import projectInformation from "./components/Panels/ProjectInformation";
 // import elementData from "./components/Panels/Selection";
@@ -122,12 +123,145 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     // });
 
     // When models are loaded or changed
-    fragments.onFragmentsLoaded.add(async () => {
-      // const customTree = components.get(CustomTree);
-      // customTree.update({ models: fragments.groups.values() });
+    // fragments.onFragmentsLoaded.add(async () => {
+    //   // const customTree = components.get(CustomTree);
+    //   // customTree.update({ models: fragments.groups.values() });
+    //   const completeQTO = components.get(CompleteQTO);
+    //   await completeQTO.getCategories();
+    // });
+
+    const workerUrl =
+      "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
+    const fetchedWorker = await fetch(workerUrl);
+    const workerText = await fetchedWorker.text();
+    const workerFile = new File([new Blob([workerText])], "worker.mjs", {
+      type: "text/javascript",
+    });
+    const url = URL.createObjectURL(workerFile);
+    const frags = new FRAGS.FragmentsModels(url);
+    world.camera.controls.addEventListener("rest", () => frags.update(true));
+    world.camera.controls.addEventListener("update", () => frags.update());
+
+    frags.models.list.onItemSet.add(async ({ value: model }) => {
+      model.useCamera(world.camera.three);
+      world.scene.three.add(model.object);
+      // At the end, you tell fragments to update so the model can be seen given
+      // the initial camera position
+      frags.update(true);
       const completeQTO = components.get(CompleteQTO);
       await completeQTO.getCategories();
     });
+
+    const casters = components.get(OBC.Raycasters);
+    casters.get(world);
+
+    const clipper = components.get(OBC.Clipper);
+    clipper.enabled = true;
+    viewport.ondblclick = () => {
+      if (clipper.enabled) {
+        clipper.create(world);
+        console.log(clipper);
+      }
+    };
+
+    window.onkeydown = (event) => {
+      if (event.code === "Delete" || event.code === "Backspace") {
+        if (clipper.enabled) {
+          clipper.delete(world);
+        }
+      }
+    };
+
+    const raycast = async (data: {
+      camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+      mouse: THREE.Vector2;
+      dom: HTMLCanvasElement;
+    }) => {
+      const results = [];
+      for (const [_, model] of frags.models.list) {
+        const result = await model.raycast(data);
+        if (result) {
+          results.push(result);
+        }
+      }
+      await Promise.all(results);
+      if (results.length === 0) return null;
+
+      // Find result with smallest distance
+      let closestResult = results[0];
+      let minDistance = closestResult.distance;
+
+      for (let i = 1; i < results.length; i++) {
+        if (results[i].distance < minDistance) {
+          minDistance = results[i].distance;
+          closestResult = results[i];
+        }
+      }
+
+      return closestResult;
+    };
+
+    const mouse = new THREE.Vector2();
+
+    let onRaycastHoverResult = (_result: FRAGS.RaycastResult | null) => {};
+    viewport.addEventListener("pointermove", async (event) => {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      const result = await raycast({
+        camera: world.camera.three,
+        mouse,
+        dom: world.renderer!.three.domElement!,
+      });
+      onRaycastHoverResult(result);
+    });
+
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, 2),
+    ]);
+
+    const lineMaterial = new THREE.LineBasicMaterial({ color: "#6528d7" });
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    world.scene.three.add(line);
+
+    onRaycastHoverResult = (result) => {
+      line.visible = !!result;
+      if (!result) return;
+      console.log(result);
+      const { point, normal } = result;
+      if (!normal) return;
+      line.position.copy(point);
+      const look = point.clone().add(normal);
+      line.lookAt(look);
+    };
+
+    let onRaycastClickResult = (_result: FRAGS.RaycastResult | null) => {};
+    viewport.addEventListener("click", async (event) => {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      const result = await raycast({
+        camera: world.camera.three,
+        mouse,
+        dom: world.renderer!.three.domElement!,
+      });
+      onRaycastClickResult(result);
+    });
+
+    const sphereGeometry = new THREE.SphereGeometry(0.4);
+
+    const sphereMaterial = new THREE.MeshLambertMaterial({
+      color: "#bcf124",
+      transparent: true,
+      opacity: 0.8,
+    });
+
+    onRaycastClickResult = (result) => {
+      if (!result) return;
+      const { point } = result;
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.copy(point);
+      world.scene.three.add(sphere);
+    };
 
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
