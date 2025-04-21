@@ -33,8 +33,8 @@ export default (
     await model.resetHighlight([localId]);
   };
 
-  let onItemSelected = () => {};
-  let onItemDeselected = () => {};
+  const onItemSelected = () => {};
+  const onItemDeselected = () => {};
 
   const raycast = async (data: {
     camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
