@@ -22,7 +22,18 @@ export default (
   };
 
   let localId: number | null = null;
+  const mouse = new THREE.Vector2();
 
+  // Unified raycast function
+  const raycast = (data: {
+    camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+    mouse: THREE.Vector2;
+    dom: HTMLCanvasElement;
+  }) => {
+    return model.raycast(data);
+  };
+
+  // Highlight functions
   const highlight = async () => {
     if (!localId) return;
     await model.highlight([localId], highlightMaterial);
@@ -33,128 +44,67 @@ export default (
     await model.resetHighlight([localId]);
   };
 
-  const onItemSelected = () => {};
-  const onItemDeselected = () => {};
+  // Visual feedback line
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, 2),
+  ]);
+  const lineMaterial = new THREE.LineBasicMaterial({ color: "#6528d7" });
+  const line = new THREE.Line(lineGeometry, lineMaterial);
+  world.scene.three.add(line);
 
-  const raycast = async (data: {
-    camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
-    mouse: THREE.Vector2;
-    dom: HTMLCanvasElement;
-  }) => {
-    const results = [];
-    for (const [_, model] of fragments.models.list) {
-      const result = await model.raycast(data);
-      if (result) {
-        results.push(result);
-      }
-    }
-    await Promise.all(results);
-    if (results.length === 0) return null;
-
-    // Find result with smallest distance
-    let closestResult = results[0];
-    let minDistance = closestResult.distance;
-
-    for (let i = 1; i < results.length; i++) {
-      if (results[i].distance < minDistance) {
-        minDistance = results[i].distance;
-        closestResult = results[i];
-      }
-    }
-
-    return closestResult;
-  };
-
-  const mouse = new THREE.Vector2();
-
-  let onRaycastHoverResult = (_result: FRAGS.RaycastResult | null) => {};
+  // Hover handling
   viewport.addEventListener("pointermove", async (event) => {
     mouse.x = event.clientX;
     mouse.y = event.clientY;
+
     const result = await raycast({
       camera: world.camera.three,
       mouse,
       dom: world.renderer!.three.domElement!,
     });
-    onRaycastHoverResult(result);
+
+    // Update visual feedback
+    line.visible = !!result;
+    if (result) {
+      const { point, normal } = result;
+      if (normal) {
+        line.position.copy(point);
+        const look = point.clone().add(normal);
+        line.lookAt(look);
+      }
+    }
   });
 
-  const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, 2),
-  ]);
-
-  const lineMaterial = new THREE.LineBasicMaterial({ color: "#6528d7" });
-  const line = new THREE.Line(lineGeometry, lineMaterial);
-  world.scene.three.add(line);
-
-  onRaycastHoverResult = (result) => {
-    line.visible = !!result;
-    if (!result) return;
-    const { point, normal } = result;
-    if (!normal) return;
-    line.position.copy(point);
-    const look = point.clone().add(normal);
-    line.lookAt(look);
-  };
-
-  let onRaycastClickResult = (_result: FRAGS.RaycastResult | null) => {};
+  // Click handling
   viewport.addEventListener("click", async (event) => {
     mouse.x = event.clientX;
     mouse.y = event.clientY;
-    const result = await model.raycast({
-      camera: world.camera.three,
-      mouse,
-      dom: world.renderer!.three.domElement!,
-    });
-    onRaycastClickResult(result);
-  });
 
-  const getAttributes = async (attributes?: string[]) => {
-    if (!localId) return null;
-    const [data] = await model.getItemsData([localId], {
-      attributesDefault: !attributes,
-      attributes,
-    });
-    return data;
-  };
+    try {
+      const result = await raycast({
+        camera: world.camera.three,
+        mouse,
+        dom: world.renderer!.three.domElement!,
+      });
 
-  onRaycastClickResult = async (result) => {
-    const promises = [];
-    if (result) {
-      promises.push(resetHighlight());
-      localId = result.localId;
-      onItemSelected();
-      promises.push(highlight());
-      const data = await getAttributes();
-      console.log("Attributes", data);
-    } else {
-      promises.push(resetHighlight());
-      localId = null;
-      onItemDeselected();
+      await resetHighlight(); // Always reset first
+
+      if (result) {
+        localId = result.localId;
+        await highlight();
+
+        const data = await model.getItemsData([localId], {
+          attributesDefault: true,
+        });
+        console.log("Element Attributes:", data[0]);
+      } else {
+        localId = null;
+      }
+
+      await fragments.update(true);
+    } catch (error) {
+      console.error("Selection error:", error);
     }
-    promises.push(fragments.update(true));
-    Promise.all(promises);
-  };
-
-  // const clipper = components.get(OBC.Clipper);
-  // clipper.enabled = true;
-
-  // window.onkeydown = (event) => {
-  //   if (event.code === "Space") {
-  //     if (clipper.enabled) {
-  //       clipper.create(world);
-  //     }
-  //   }
-  // };
-
-  // window.onkeydown = (event) => {
-  //   if (event.code === "Delete" || event.code === "Backspace") {
-  //     if (clipper.enabled) {
-  //       clipper.delete(world);
-  //     }
-  //   }
-  // };
-
-  // world.meshes.add(cube); // Crucial for clipper to work
+  });
 };
