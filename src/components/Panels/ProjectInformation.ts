@@ -1,14 +1,15 @@
+/* eslint-disable import/no-unresolved */
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
 import * as CUI from "@thatopen/ui-obc";
 import * as FRAGS from "@thatopen/fragments";
 import BUCC1 from "../../assets/BUCC_1.frag?url";
-import BUCC2 from "../../assets/BUCC_2.frag?url";
+// import BUCC2 from "../../assets/BUCC_2.frag?url";
 // import groupings from "./Sections/Groupings";
 
 const modelPaths = {
   "1": BUCC1,
-  "2": BUCC2,
+  // "2": BUCC2,
 };
 
 export default (
@@ -78,7 +79,10 @@ export default (
         if (ids.includes(id)) {
           await disposeModels([id]);
         } else {
-          await loadFragmentFile(modelPaths[name], id);
+          await loadFragmentFile(
+            modelPaths[name as keyof typeof modelPaths],
+            id,
+          );
         }
         target.loading = false;
       };
@@ -104,29 +108,29 @@ export default (
       };
 
       const bucc1Loaded = ids.some((id) => id.includes("BUCC_1"));
-      const bucc2Loaded = ids.some((id) => id.includes("BUCC_2"));
+      // const bucc2Loaded = ids.some((id) => id.includes("BUCC_2"));
 
       const bucc1Label = bucc1Loaded ? "Remove BUCC 1" : "Load BUCC 1";
-      const bucc2Label = bucc2Loaded ? "Remove BUCC 2" : "Load BUCC 2";
+      // const bucc2Label = bucc2Loaded ? "Remove BUCC 2" : "Load BUCC 2";
 
       return BUI.html`
-    <bim-panel id="controls-panel" active label="Fragments Models" class="options-menu">
-      <bim-panel-section label="Controls">
-        <div style="display: flex; gap: 0.25rem">
-          <bim-button data-name="1" label=${bucc1Label} @click=${onLoadModel}></bim-button>
-          ${bucc1Loaded ? BUI.html`<bim-button data-name="1" label="Download" @click=${onDownloadModel}></bim-button>` : null}
-        </div>
-        <div style="display: flex; gap: 0.25rem">
-          <bim-button data-name="2" label=${bucc2Label} @click=${onLoadModel}></bim-button>
-          ${bucc2Loaded ? BUI.html`<bim-button data-name="2" label="Download" @click=${onDownloadModel}></bim-button>` : null}
-        </div>
-        <bim-button ?disabled=${ids.length === 0} label="Remove All" @click=${onDisposeModels}></bim-button>
-      </bim-panel-section>
-    </bim-panel>
-  `;
+        <bim-panel id="controls-panel" active class="options-menu">
+          <bim-panel-section label="Fragments Models">
+            <div style="display: flex; gap: 0.25rem">
+              <bim-button data-name="1" label=${bucc1Label} @click=${onLoadModel}></bim-button>
+                ${bucc1Loaded ? BUI.html`<bim-button data-name="1" label="Download" @click=${onDownloadModel}></bim-button>` : null}
+              </div>
+              <bim-button ?disabled=${ids.length === 0} label="Remove All" @click=${onDisposeModels}></bim-button>
+          </bim-panel-section>
+        </bim-panel>
+        `;
     },
     {},
   );
+  // <div style="display: flex; gap: 0.25rem">
+  //   <bim-button data-name="2" label=${bucc2Label} @click=${onLoadModel}></bim-button>
+  //   ${bucc2Loaded ? BUI.html`<bim-button data-name="2" label="Download" @click=${onDownloadModel}></bim-button>` : null}
+  // </div>
 
   fragments.models.list.onItemSet.add(() => updatePanel());
   fragments.models.list.onItemDeleted.add(() => updatePanel());
@@ -153,15 +157,20 @@ export default (
 
   return BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
-      <bim-panel>
-        <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
-          ${modelsList}
-          ${panel}
-        </bim-panel-section>
-      </bim-panel> 
+        ${panel}
       `;
   });
 };
+// return BUI.Component.create<BUI.Panel>(() => {
+//   return BUI.html`
+//     <bim-panel>
+//       <bim-panel-section label="Loaded Models" icon="mage:box-3d-fill">
+//         ${modelsList}
+//         ${panel}
+//       </bim-panel-section>
+//     </bim-panel>
+//     `;
+// });
 
 // <bim-panel-section label="Spatial Structures" icon="ph:tree-structure-fill">
 //   <div style="display: flex; gap: 0.375rem;">
