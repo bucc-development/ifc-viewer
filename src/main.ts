@@ -163,7 +163,11 @@ import Raycaster from "./components/Raycaster";
     });
 
     // Setup UI components
-    const projectInformationPanel = projectInformation(components);
+    const projectInformationPanel = projectInformation(
+      components,
+      world,
+      fragments,
+    );
     // const elementDataPanel = elementData(components);
     // const qtoPanel = simpleQtoPanel(components);
     const completeQTOPanel = CompleteQTOPanel(components);
