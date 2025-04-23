@@ -2,19 +2,25 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+
 import projectInformation from "./components/Panels/ProjectInformation";
 import elementData from "./components/Panels/Selection";
 import settings from "./components/Panels/Settings";
+import simpleQtoPanel from "./components/Panels/SimpleQTO";
+import customRelTree from "./components/Panels/CustomRelTree";
+import CompleteQTOPanel from "./components/Panels/CompleteQTO";
+import elementsTable from "./components/Panels/ElementsTable";
+
 import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
 import selection from "./components/Toolbars/Sections/Selection";
-import { AppManager } from "./bim-components";
-import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
+
+import { AppManager } from "./bim-components/AppManager";
+import { SimpleQTO } from "./bim-components/SimpleQTO";
+// import { CustomTree } from "./bim-components/CustomTree";
 
 import "./style.css";
-import QTO from "./components/Panels/QTO";
-import { customRelTree } from "./components/Panels/CustomRelTree";
-import { CustomTree } from "./bim-components/CustomTree";
+import { CompleteQTO } from "./bim-components/CompleteQTO";
 
 // Initialize application
 (async () => {
@@ -118,16 +124,20 @@ import { CustomTree } from "./bim-components/CustomTree";
     });
 
     // When models are loaded or changed
-    fragments.onFragmentsLoaded.add(() => {
-      const customTree = components.get(CustomTree);
-      customTree.update({ models: fragments.groups.values() });
+    fragments.onFragmentsLoaded.add(async () => {
+      // const customTree = components.get(CustomTree);
+      // customTree.update({ models: fragments.groups.values() });
+      const completeQTO = components.get(CompleteQTO);
+      await completeQTO.getCategories();
     });
 
     // Setup UI components
     const projectInformationPanel = projectInformation(components);
     const elementDataPanel = elementData(components);
-    const qtoPanel = QTO(components);
+    const qtoPanel = simpleQtoPanel(components);
+    const completeQTOPanel = CompleteQTOPanel(components);
     const customTreePanel = customRelTree(components);
+    const tablePanel = elementsTable(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -152,7 +162,7 @@ import { CustomTree } from "./bim-components/CustomTree";
       }
     };
 
-    const onShowQuantity = async () => {
+    const onShowSimpleQuantity = async () => {
       if (!components) return;
 
       const highlighter = components.get(OBF.Highlighter);
@@ -183,6 +193,19 @@ import { CustomTree } from "./bim-components/CustomTree";
       }
     };
 
+    const onShowCompleteQuantity = async () => {
+      if (!viewportGrid) {
+        console.warn("QTO panel not ready yet");
+        return;
+      }
+
+      if (viewportGrid.layout !== "qtoCategories") {
+        viewportGrid.layout = "qtoCategories";
+      } else {
+        viewportGrid.layout = "main";
+      }
+    };
+
     const toolbar = BUI.Component.create(() => {
       return BUI.html`
         <bim-toolbar>
@@ -191,21 +214,27 @@ import { CustomTree } from "./bim-components/CustomTree";
             <bim-button 
               tooltip-title="Properties" 
               tooltip-text="Show properties of the highlighted elements."
-              icon="clarity:list-line"
+              icon="clarity:list-solid"
               @click=${onShowProperty}
             ></bim-button>
             <bim-button 
             tooltip-title="Simple Quantities" 
             tooltip-text="Adds up the quantities of all selected elements"
             icon="mdi:summation"
-            @click=${onShowQuantity}  
+            @click=${onShowSimpleQuantity}  
             ></bim-button>
-            <!-- <bim-button 
+            <bim-button 
+            tooltip-title="Create Quantity Take-Off" 
+            tooltip-text="Open Custom Table to generate a complete Quantity Take-Off"
+            icon="clarity:calculator-solid"
+            @click=${onShowCompleteQuantity}  
+            ></bim-button>
+            <bim-button 
             tooltip-title="Classification" 
             tooltip-text="Shows classification tree for the loaded model."
             icon="clarity:tree-view-line"
             @click=${onShowCustomTree}
-            ></bim-button> -->
+            ></bim-button>
           </bim-toolbar-section>
           ${camera(world)}
           ${selection(components, world)}
@@ -237,10 +266,11 @@ import { CustomTree } from "./bim-components/CustomTree";
       main: {
         template: `
           "empty" 1fr
+          "tablePanel" 1fr
           "toolbar" auto
           /1fr
         `,
-        elements: { toolbar },
+        elements: { toolbar, tablePanel },
       },
       second: {
         template: `
@@ -273,6 +303,17 @@ import { CustomTree } from "./bim-components/CustomTree";
         elements: {
           toolbar,
           customTreePanel,
+        },
+      },
+      qtoCategories: {
+        template: `
+          "empty completeQTOPanel" 1fr
+          "toolbar toolbar" auto
+          /1fr 24rem
+        `,
+        elements: {
+          toolbar,
+          completeQTOPanel,
         },
       },
     };

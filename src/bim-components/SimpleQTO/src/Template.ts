@@ -6,14 +6,14 @@ export interface QTOUIState {
   components: OBC.Components;
 }
 
-export const qtoTool = (state: QTOUIState) => {
+export const simpleQTOTool = (state: QTOUIState) => {
   const { components } = state;
   const simpleQto = components.get(SimpleQTO);
 
   const qtoTable = BUI.Component.create<BUI.Table>(() => {
     return BUI.html`
-          <bim-table></bim-table>
-      `;
+      <bim-table></bim-table>
+    `;
   });
 
   qtoTable.headersHidden = true;
