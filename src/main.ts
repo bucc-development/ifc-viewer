@@ -9,6 +9,7 @@ import settings from "./components/Panels/Settings";
 import simpleQtoPanel from "./components/Panels/SimpleQTO";
 import customRelTree from "./components/Panels/CustomRelTree";
 import CompleteQTOPanel from "./components/Panels/CompleteQTO";
+import elementsTable from "./components/Panels/ElementsTable";
 
 import load from "./components/Toolbars/Sections/Import";
 import camera from "./components/Toolbars/Sections/Camera";
@@ -136,6 +137,7 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
     const qtoPanel = simpleQtoPanel(components);
     const completeQTOPanel = CompleteQTOPanel(components);
     const customTreePanel = customRelTree(components);
+    const tablePanel = elementsTable(components);
 
     const leftPanel = BUI.Component.create(() => {
       return BUI.html`
@@ -264,10 +266,11 @@ import { CompleteQTO } from "./bim-components/CompleteQTO";
       main: {
         template: `
           "empty" 1fr
+          "tablePanel" 1fr
           "toolbar" auto
           /1fr
         `,
-        elements: { toolbar },
+        elements: { toolbar, tablePanel },
       },
       second: {
         template: `

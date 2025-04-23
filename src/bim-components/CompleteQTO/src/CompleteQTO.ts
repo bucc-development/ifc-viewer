@@ -41,8 +41,8 @@ export class CompleteQTO extends OBC.Component implements OBC.Disposable {
   private _categories: string[] = [];
   categoriesTable: BUI.Table | undefined;
   fullQTOTable: BUI.Table | undefined;
-  // private mainCategory = "Category";
-  private mainCategory = "Name";
+  private mainCategory = "Category";
+  // private mainCategory = "Name";
 
   get categories(): string[] {
     return this._categories;
