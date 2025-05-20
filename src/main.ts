@@ -143,10 +143,11 @@ import Raycaster from "./components/Raycaster";
     world.camera.controls.addEventListener("rest", () =>
       fragments.update(true),
     );
+    world.camera.controls.restThreshold = 0.25;
     world.camera.controls.addEventListener("update", () => fragments.update());
 
     fragments.models.list.onItemSet.add(async ({ value: model }) => {
-      model.useCamera(world.camera.three);
+      model.useCamera(world.camera.three); // already hides all unseen elements (like a culler)
       world.scene.three.add(model.object);
 
       // Add all fragment meshes to world.meshes
@@ -160,6 +161,10 @@ import Raycaster from "./components/Raycaster";
       Raycaster(components, world, fragments, viewport, model);
       const completeQTO = components.get(CompleteQTO);
       await completeQTO.getCategories();
+    });
+
+    viewportGrid.addEventListener("click", () => {
+      // raycaster setup
     });
 
     // Setup UI components

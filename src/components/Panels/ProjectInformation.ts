@@ -1,16 +1,10 @@
-/* eslint-disable import/no-unresolved */
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
 import * as CUI from "@thatopen/ui-obc";
 import * as FRAGS from "@thatopen/fragments";
-import BUCC1 from "../../assets/BUCC_1.frag?url";
-// import BUCC2 from "../../assets/BUCC_2.frag?url";
 // import groupings from "./Sections/Groupings";
 
-const modelPaths = {
-  "1": BUCC1,
-  // "2": BUCC2,
-};
+const fragFiles = import.meta.glob("../../assets/*.frag", { as: "url" });
 
 export default (
   components: OBC.Components,
@@ -71,6 +65,16 @@ export default (
     (_) => {
       const ids = getModelsIds();
 
+      // Get all available fragment files
+      const availableFiles = Object.entries(fragFiles).map(([path, getUrl]) => {
+        const fileName = path.split("/").pop()?.replace(".frag", "") || "";
+        return {
+          name: fileName,
+          path: getUrl,
+          id: fileName, // Using the filename as ID
+        };
+      });
+
       const onLoadModel = async ({ target }: { target: BUI.Button }) => {
         const name = target.getAttribute("data-name");
         if (!name) return;
@@ -79,10 +83,11 @@ export default (
         if (ids.includes(id)) {
           await disposeModels([id]);
         } else {
-          await loadFragmentFile(
-            modelPaths[name as keyof typeof modelPaths],
-            id,
-          );
+          const file = availableFiles.find((f) => f.name === name);
+          if (file) {
+            const url = await file.path();
+            await loadFragmentFile(url, name);
+          }
         }
         target.loading = false;
       };
@@ -107,26 +112,48 @@ export default (
         target.loading = false;
       };
 
-      const bucc1Loaded = ids.some((id) => id.includes("BUCC_1"));
-      // const bucc2Loaded = ids.some((id) => id.includes("BUCC_2"));
-
-      const bucc1Label = bucc1Loaded ? "Remove BUCC 1" : "Load BUCC 1";
-      // const bucc2Label = bucc2Loaded ? "Remove BUCC 2" : "Load BUCC 2";
-
       return BUI.html`
         <bim-panel id="controls-panel" active class="options-menu">
           <bim-panel-section label="Fragments Models">
-            <div style="display: flex; gap: 0.25rem">
-              <bim-button data-name="1" label=${bucc1Label} @click=${onLoadModel}></bim-button>
-                ${bucc1Loaded ? BUI.html`<bim-button data-name="1" label="Download" @click=${onDownloadModel}></bim-button>` : null}
-              </div>
-              <bim-button ?disabled=${ids.length === 0} label="Remove All" @click=${onDisposeModels}></bim-button>
+            ${availableFiles.map((file) => {
+              const isLoaded = ids.includes(file.name);
+              const label = isLoaded
+                ? `Remove ${file.name}`
+                : `Load ${file.name}`;
+
+              return BUI.html`
+                <div style="display: flex; gap: 0.25rem; margin-bottom: 0.25rem">
+                  <bim-button 
+                    data-name=${file.name} 
+                    label=${label} 
+                    @click=${onLoadModel}>
+                  </bim-button>
+                  ${
+                    isLoaded
+                      ? BUI.html`
+                    <bim-button 
+                      data-name=${file.name} 
+                      label="Download" 
+                      @click=${onDownloadModel}>
+                    </bim-button>
+                  `
+                      : null
+                  }
+                </div>
+              `;
+            })}
+            <bim-button 
+              ?disabled=${ids.length === 0} 
+              label="Remove All" 
+              @click=${onDisposeModels}>
+            </bim-button>
           </bim-panel-section>
         </bim-panel>
-        `;
+      `;
     },
     {},
   );
+
   // <div style="display: flex; gap: 0.25rem">
   //   <bim-button data-name="2" label=${bucc2Label} @click=${onLoadModel}></bim-button>
   //   ${bucc2Loaded ? BUI.html`<bim-button data-name="2" label="Download" @click=${onDownloadModel}></bim-button>` : null}
@@ -153,7 +180,7 @@ export default (
   `;
   });
 
-  document.body.append(button);
+  // document.body.append(button);
 
   return BUI.Component.create<BUI.Panel>(() => {
     return BUI.html`
