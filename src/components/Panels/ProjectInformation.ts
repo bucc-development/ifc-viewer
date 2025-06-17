@@ -16,6 +16,8 @@ export default (
   fragments: FRAGS.FragmentsModels,
 ) => {
   const [modelsList] = CUI.tables.modelsList({ components });
+  let ids: string[] = [];
+
   // const [relationsTree] = CUI.tables.relationsTree({
   //   components,
   //   models: [],
@@ -53,6 +55,10 @@ export default (
     return ids;
   };
 
+  function updateLoadedIds() {
+    ids = getModelsIds();
+  }
+
   const disposeModels = async (ids = getModelsIds()) => {
     const promises = [];
     for (const id of ids) promises.push(fragments.disposeModel(id));
@@ -63,8 +69,6 @@ export default (
 
   const [panel, updatePanel] = BUI.Component.create<BUI.PanelSection, any>(
     (_) => {
-      const ids = getModelsIds();
-
       // Get all available fragment files
       const availableFiles = Object.entries(fragFiles).map(([path, getUrl]) => {
         const fileName = path.split("/").pop()?.replace(".frag", "") || "";
@@ -80,13 +84,16 @@ export default (
         if (!name) return;
         const id = `BUCC_${name}`;
         target.loading = true;
+
+        const ids = getModelsIds();
+
         if (ids.includes(id)) {
           await disposeModels([id]);
         } else {
           const file = availableFiles.find((f) => f.name === name);
           if (file) {
             const url = await file.path();
-            await loadFragmentFile(url, name);
+            await loadFragmentFile(url, id); // Pass the prefixed ID
           }
         }
         target.loading = false;
@@ -112,11 +119,13 @@ export default (
         target.loading = false;
       };
 
+      updateLoadedIds();
+
       return BUI.html`
         <bim-panel id="controls-panel" active class="options-menu">
           <bim-panel-section label="Fragments Models">
             ${availableFiles.map((file) => {
-              const isLoaded = ids.includes(file.name);
+              const isLoaded = ids.includes(`BUCC_${file.name}`);
               const label = isLoaded
                 ? `Remove ${file.name}`
                 : `Load ${file.name}`;
@@ -159,7 +168,9 @@ export default (
   //   ${bucc2Loaded ? BUI.html`<bim-button data-name="2" label="Download" @click=${onDownloadModel}></bim-button>` : null}
   // </div>
 
+  fragments.models.list.onItemSet.add(() => updateLoadedIds());
   fragments.models.list.onItemSet.add(() => updatePanel());
+  fragments.models.list.onItemDeleted.add(() => updateLoadedIds());
   fragments.models.list.onItemDeleted.add(() => updatePanel());
 
   document.body.append(panel);
