@@ -2,42 +2,18 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
-import projectInformation from "./components/Panels/ProjectInformation";
-import elementData from "./components/Panels/Selection";
-import settings from "./components/Panels/Settings";
-import load from "./components/Toolbars/Sections/Import";
-import camera from "./components/Toolbars/Sections/Camera";
-import selection from "./components/Toolbars/Sections/Selection";
-import { AppManager } from "./bim-components";
-import { SimpleQTO } from "./bim-components/SimpleQTO/src/SimpleQTO";
+import * as TEMPLATES from "./ui-templates";
+import { CONTENT_GRID_ID, appIcons } from "./globals";
+import { logoTemplate } from "./ui-templates/buttons/logo";
+import { initMiniCubeViewer } from "./components/Viewer/MiniCubeViewer";
 
 import "./style.css";
-import QTO from "./components/Panels/QTO";
-import { customRelTree } from "./components/Panels/CustomRelTree";
-import { CustomTree } from "./bim-components/CustomTree";
 
-// Initialize application
 (async () => {
   try {
-    // Set initial theme based on system preference
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.documentElement.className = prefersDark
-      ? "bim-ui-dark"
-      : "bim-ui-light";
+    BUI.Manager.init();
 
-    // Listen for system theme changes
-    window
-      .matchMedia("(prefers-color-scheme: dark)")
-      .addEventListener("change", (e) => {
-        document.documentElement.className = e.matches
-          ? "bim-ui-dark"
-          : "bim-ui-light";
-      });
-
-    await BUI.Manager.init();
-
+    // Components Setup
     const components = new OBC.Components();
     const worlds = components.get(OBC.Worlds);
 
@@ -46,311 +22,338 @@ import { CustomTree } from "./bim-components/CustomTree";
       OBC.OrthoPerspectiveCamera,
       OBF.PostproductionRenderer
     >();
-    world.name = "Main";
 
+    world.name = "Main";
     world.scene = new OBC.SimpleScene(components);
-    await world.scene.setup();
-    world.scene.three.background = null;
+    world.scene.setup();
+    world.scene.three.background = new THREE.Color(0xe5e5e5); // Neutral Gray
+
+    // Ensure #app exists (declared in index.html as <bim-grid id="app">)
+    let appElement = document.getElementById("app");
+    if (!appElement) {
+      const created = document.createElement("bim-grid");
+      created.id = "app";
+      document.body.appendChild(created);
+      appElement = created;
+    }
 
     const viewport = BUI.Component.create<BUI.Viewport>(() => {
-      return BUI.html`
-        <bim-viewport>
-          <bim-grid floating></bim-grid>
-        </bim-viewport>
-      `;
+      return BUI.html`<bim-viewport></bim-viewport>`;
     });
 
-    world.renderer = new OBF.PostproductionRenderer(components, viewport);
-    const { postproduction } = world.renderer;
+    appElement.appendChild(viewport);
 
+    world.renderer = new OBF.PostproductionRenderer(components, viewport);
     world.camera = new OBC.OrthoPerspectiveCamera(components);
+    world.camera.threePersp.near = 0.01;
+    world.camera.threePersp.updateProjectionMatrix();
+    world.camera.controls.restThreshold = 0.05;
 
     const worldGrid = components.get(OBC.Grids).create(world);
-    worldGrid.material.uniforms.uColor.value = new THREE.Color(0x424242);
+    worldGrid.material.uniforms.uColor.value = new THREE.Color(0x494c3f); // Army
     worldGrid.material.uniforms.uSize1.value = 2;
     worldGrid.material.uniforms.uSize2.value = 8;
 
-    const resizeWorld = () => {
+    const resizeWorld = (): void => {
       world.renderer?.resize();
       world.camera.updateAspect();
     };
 
     viewport.addEventListener("resize", resizeWorld);
 
-    await components.init();
+    world.dynamicAnchor = false;
 
+    components.init();
+
+    // Corner container: logo on top-right
+    const cornerEl = document.createElement("div");
+    cornerEl.className = "viewer-corner";
+    viewport.appendChild(cornerEl);
+
+    // Mini orientation cube container, top-left
+    const miniViewerEl = document.createElement("div");
+    miniViewerEl.id = "mini-cube-viewer";
+    miniViewerEl.className = "mini-cube-viewer";
+    viewport.appendChild(miniViewerEl);
+
+    components.get(OBC.Raycasters).get(world);
+
+    const { postproduction } = world.renderer;
     postproduction.enabled = true;
-    postproduction.customEffects.excludedMeshes.push(worldGrid.three);
-    postproduction.setPasses({ custom: true, ao: true, gamma: true });
-    postproduction.customEffects.lineColor = 0x17191c;
+    postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
 
-    const appManager = components.get(AppManager);
-    const viewportGrid =
-      viewport.querySelector<BUI.Grid>("bim-grid[floating]")!;
-    appManager.grids.set("viewport", viewportGrid);
+    const { aoPass, edgesPass } = world.renderer.postproduction;
+
+    edgesPass.color = new THREE.Color(0x494c3f); // Army
+
+    const aoParameters = {
+      radius: 0.25,
+      distanceExponent: 1,
+      thickness: 1,
+      scale: 1,
+      samples: 16,
+      distanceFallOff: 1,
+      screenSpaceRadius: true,
+    };
+
+    const pdParameters = {
+      lumaPhi: 10,
+      depthPhi: 2,
+      normalPhi: 3,
+      radius: 4,
+      radiusExponent: 1,
+      rings: 2,
+      samples: 16,
+    };
+
+    aoPass.updateGtaoMaterial(aoParameters);
+    aoPass.updatePdMaterial(pdParameters);
 
     const fragments = components.get(OBC.FragmentsManager);
-    const indexer = components.get(OBC.IfcRelationsIndexer);
-    const classifier = components.get(OBC.Classifier);
-    classifier.list.CustomSelections = {};
+
+    // Init fragments with local worker bundled in /public
+    const workerUrl = new URL(`${import.meta.env.BASE_URL}worker.mjs`, window.location.origin).href;
+    fragments.init(workerUrl);
+
+    fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
+      const isLod = "isLodMaterial" in material && material.isLodMaterial;
+      if (isLod) {
+        world.renderer!.postproduction.basePass.isolatedMaterials.push(material);
+      }
+    });
+
+    world.camera.projection.onChanged.add(() => {
+      for (const [, model] of fragments.list) {
+        model.useCamera(world.camera.three);
+      }
+      world.renderer?.postproduction.updateCamera();
+      const mode = world.camera.mode.id;
+      world.camera.set(mode);
+    });
+
+    world.camera.controls.addEventListener("rest", async () => {
+      await fragments.core.update(true);
+    });
 
     const ifcLoader = components.get(OBC.IfcLoader);
-    await ifcLoader.setup();
+    await ifcLoader.setup({
+      autoSetWasm: false,
+      wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.71/" },
+    });
 
-    const tilesLoader = components.get(OBF.IfcStreamer);
-    tilesLoader.url = "./resources/tiles/"; // Updated path
-    tilesLoader.world = world;
-    tilesLoader.culler.threshold = 10;
-    tilesLoader.culler.maxHiddenTime = 1000;
-    tilesLoader.culler.maxLostTime = 40000;
+    // No SharePoint folder integration — start with empty list.
+    const bcfFiles: Array<{ name: string; url: string }> = [];
 
     const highlighter = components.get(OBF.Highlighter);
-    await highlighter.setup({ world });
-    highlighter.zoomToSelection = true;
-
-    const culler = components.get(OBC.Cullers).create(world);
-    culler.threshold = 5;
-
-    world.camera.controls.restThreshold = 0.25;
-    world.camera.controls.addEventListener("rest", () => {
-      culler.needsUpdate = true;
-      tilesLoader.culler.needsUpdate = true;
+    highlighter.setup({
+      world,
+      selectMaterialDefinition: {
+        color: new THREE.Color("#a3be8c"), // Basil
+        renderedFaces: 1,
+        opacity: 1,
+        transparent: false,
+      },
     });
 
-    // When models are loaded or changed
-    fragments.onFragmentsLoaded.add(() => {
-      const customTree = components.get(CustomTree);
-      customTree.update({ models: fragments.groups.values() });
+    initMiniCubeViewer({
+      world,
+      container: miniViewerEl,
+      onFaceClick: async (direction) => {
+        const pos = new THREE.Vector3();
+        const tgt = new THREE.Vector3();
+        world.camera.controls.getPosition(pos, true);
+        world.camera.controls.getTarget(tgt, true);
+        const radius = pos.distanceTo(tgt);
+        const newPos = direction.clone().multiplyScalar(radius).add(tgt);
+        world.camera.controls.setLookAt(newPos.x, newPos.y, newPos.z, tgt.x, tgt.y, tgt.z, false);
+        const selection = highlighter.selection.select;
+        await world.camera.fitToItems(
+          OBC.ModelIdMapUtils.isEmpty(selection) ? undefined : selection
+        );
+      },
     });
 
-    // Setup UI components
-    const projectInformationPanel = projectInformation(components);
-    const elementDataPanel = elementData(components);
-    const qtoPanel = QTO(components);
-    const customTreePanel = customRelTree(components);
+    // Clipper Setup
+    const clipper = components.get(OBC.Clipper);
+    viewport.ondblclick = async () => {
+      if (clipper.enabled) await clipper.create(world);
+    };
 
-    const leftPanel = BUI.Component.create(() => {
-      return BUI.html`
-        <bim-tabs switchers-full>
-          <bim-tab name="project" label="Project" icon="ph:building-fill">
-            ${projectInformationPanel}
-          </bim-tab>
-          <bim-tab name="settings" label="Settings" icon="solar:settings-bold">
-            ${settings(components)}
-          </bim-tab>
-        </bim-tabs> 
-      `;
+    window.addEventListener("keydown", async (event) => {
+      if (event.code === "Delete" || event.code === "Backspace") {
+        await clipper.delete(world);
+      }
     });
 
-    const onShowProperty = (): void => {
-      if (!viewportGrid) return;
+    // Length Measurement Setup
+    const lengthMeasurer = components.get(OBF.LengthMeasurement);
+    lengthMeasurer.world = world;
+    lengthMeasurer.color = new THREE.Color("#3b82f6"); // Azure
 
-      if (viewportGrid.layout !== "second") {
-        viewportGrid.layout = "second";
+    lengthMeasurer.list.onItemAdded.add(async (line) => {
+      const center = new THREE.Vector3();
+      line.getCenter(center);
+      const radius = line.distance() / 3;
+      const sphere = new THREE.Sphere(center, radius);
+      await world.camera.controls.fitToSphere(sphere, true);
+    });
+
+    viewport.addEventListener("dblclick", () => lengthMeasurer.create());
+
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "Delete" || event.code === "Backspace") {
+        lengthMeasurer.delete();
+      }
+    });
+
+    // Area Measurement Setup
+    const areaMeasurer = components.get(OBF.AreaMeasurement);
+    areaMeasurer.world = world;
+    areaMeasurer.color = new THREE.Color("#3b82f6"); // Azure
+
+    areaMeasurer.list.onItemAdded.add(async (area) => {
+      if (!area.boundingBox) return;
+      const sphere = new THREE.Sphere();
+      area.boundingBox.getBoundingSphere(sphere);
+      await world.camera.controls.fitToSphere(sphere, true);
+    });
+
+    viewport.addEventListener("dblclick", async () => {
+      await areaMeasurer.create();
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.code === "Enter" || event.code === "NumpadEnter") {
+        areaMeasurer.endCreation();
+      }
+    });
+
+    fragments.list.onItemSet.add(async ({ value: model }) => {
+      model.useCamera(world.camera.three);
+      model.getClippingPlanesEvent = () => {
+        return Array.from(world.renderer!.three.clippingPlanes) || [];
+      };
+      world.scene.three.add(model.object);
+      await fragments.core.update(true);
+    });
+
+    // Viewport Layouts
+    const logo = BUI.Component.create(logoTemplate);
+    cornerEl.prepend(logo);
+
+    const [viewportGrid] = BUI.Component.create(TEMPLATES.viewportGridTemplate, {
+      components,
+      world,
+    });
+    viewport.append(viewportGrid);
+
+    const viewportCardTemplate = (): ReturnType<typeof BUI.html> => BUI.html`
+      <div class="dashboard-card" style="padding: 0px;">
+        ${viewport}
+      </div>
+    `;
+
+    const [contentGrid] = BUI.Component.create<
+      BUI.Grid<TEMPLATES.ContentGridLayouts, TEMPLATES.ContentGridElements>,
+      TEMPLATES.ContentGridState
+    >(TEMPLATES.contentGridTemplate, {
+      components,
+      id: CONTENT_GRID_ID,
+      viewportTemplate: viewportCardTemplate,
+      bcfFiles,
+      world,
+    });
+
+    const setInitialLayout = (): void => {
+      if (window.location.hash) {
+        const hash = window.location.hash.slice(
+          1
+        ) as TEMPLATES.ContentGridLayouts[number];
+        if (Object.keys(contentGrid.layouts).includes(hash)) {
+          contentGrid.layout = hash;
+        } else {
+          contentGrid.layout = "Viewer";
+          window.location.hash = "Viewer";
+        }
       } else {
-        viewportGrid.layout = "main";
+        window.location.hash = "Viewer";
+        contentGrid.layout = "Viewer";
       }
     };
 
-    const onShowQuantity = async () => {
-      if (!components) return;
+    setInitialLayout();
 
-      const highlighter = components.get(OBF.Highlighter);
-      const selection = highlighter.selection.select;
-      const simpleQto = components.get(SimpleQTO);
-      await simpleQto.sumQuantities(selection);
-
-      if (!viewportGrid) {
-        console.warn("QTO panel not ready yet");
-        return;
-      }
-      if (viewportGrid.layout !== "qtos") {
-        viewportGrid.layout = "qtos";
-      } else {
-        viewportGrid.layout = "main";
-      }
-    };
-
-    const onShowCustomTree = async () => {
-      if (!viewportGrid) {
-        console.warn("QTO panel not ready yet");
-        return;
-      }
-      if (viewportGrid.layout !== "customTree") {
-        viewportGrid.layout = "customTree";
-      } else {
-        viewportGrid.layout = "main";
-      }
-    };
-
-    const toolbar = BUI.Component.create(() => {
-      return BUI.html`
-        <bim-toolbar>
-          ${load(components)}
-          <bim-toolbar-section label="Properties" icon="clarity:nodes-line">
-            <bim-button 
-              tooltip-title="Properties" 
-              tooltip-text="Show properties of the highlighted elements."
-              icon="clarity:list-line"
-              @click=${onShowProperty}
-            ></bim-button>
-            <bim-button 
-            tooltip-title="Simple Quantities" 
-            tooltip-text="Adds up the quantities of all selected elements"
-            icon="mdi:summation"
-            @click=${onShowQuantity}  
-            ></bim-button>
-            <!-- <bim-button 
-            tooltip-title="Classification" 
-            tooltip-text="Shows classification tree for the loaded model."
-            icon="clarity:tree-view-line"
-            @click=${onShowCustomTree}
-            ></bim-button> -->
-          </bim-toolbar-section>
-          ${camera(world)}
-          ${selection(components, world)}
-        </bim-toolbar>
-      `;
+    contentGrid.addEventListener("layoutchange", () => {
+      window.location.hash = contentGrid.layout as string;
     });
 
-    const app = document.getElementById("app") as BUI.Grid;
-    if (!app) {
-      throw new Error("App element not found");
+    const contentGridIcons: Record<TEMPLATES.ContentGridLayouts[number], string> = {
+      Viewer: appIcons.MODEL,
+    };
+
+    type AppLayouts = ["App"];
+
+    type Sidebar = {
+      name: "sidebar";
+      state: TEMPLATES.GridSidebarState;
+    };
+
+    type ContentGrid = {
+      name: "contentGrid";
+      state: TEMPLATES.ContentGridState;
+    };
+
+    type AppGridElements = [Sidebar, ContentGrid];
+
+    if (appElement.tagName.toLowerCase() !== "bim-grid") {
+      const created = document.createElement("bim-grid");
+      created.id = appElement.id || "app";
+      while (appElement.firstChild) {
+        created.appendChild(appElement.firstChild);
+      }
+      appElement.replaceWith(created);
+      appElement = created;
     }
 
+    const app = appElement as BUI.Grid<AppLayouts, AppGridElements>;
+
+    app.elements = {
+      sidebar: {
+        template: TEMPLATES.gridSidebarTemplate,
+        initialState: {
+          grid: contentGrid,
+          compact: true,
+          layoutIcons: contentGridIcons,
+        },
+      },
+      contentGrid,
+    };
+
+    contentGrid.addEventListener("layoutchange", () =>
+      app.updateComponent.sidebar()
+    );
+
     app.layouts = {
-      main: {
+      App: {
         template: `
-          "leftPanel viewport" 1fr
-          /26rem 1fr
+          "sidebar contentGrid" 1fr
+          /auto 1fr
         `,
-        elements: {
-          leftPanel,
-          viewport,
-        },
       },
     };
 
-    app.layout = "main";
+    app.layout = "App";
 
-    viewportGrid.layouts = {
-      main: {
-        template: `
-          "empty" 1fr
-          "toolbar" auto
-          /1fr
-        `,
-        elements: { toolbar },
-      },
-      second: {
-        template: `
-          "empty elementDataPanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          elementDataPanel,
-        },
-      },
-      qtos: {
-        template: `
-          "empty qtoPanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          qtoPanel,
-        },
-      },
-      customTree: {
-        template: `
-          "empty customTreePanel" 1fr
-          "toolbar toolbar" auto
-          /1fr 24rem
-        `,
-        elements: {
-          toolbar,
-          customTreePanel,
-        },
-      },
+    components.get(OBC.Raycasters).get(world);
+
+    const onFirstViewportResize = (): void => {
+      viewport.removeEventListener("resize", onFirstViewportResize);
+      if (world.camera instanceof OBC.OrthoPerspectiveCamera) {
+        world.camera.projection.set("Orthographic").catch(() => {});
+      }
     };
+    viewport.addEventListener("resize", onFirstViewportResize);
 
-    viewportGrid.layout = "main";
-
-    // Set up event handlers for SharePoint integration
-    window.addEventListener("message", async (event) => {
-      const allowedOrigins = [
-        "https://buccbv.sharepoint.com",
-        "https://localhost:4321",
-      ];
-
-      if (!allowedOrigins.includes(event.origin)) {
-        console.warn("Unauthorized origin:", event.origin);
-        return;
-      }
-
-      try {
-        console.log("Received message:", event);
-        if (event.data instanceof ArrayBuffer) {
-          console.log("Received ArrayBuffer, creating IFC load event...");
-          const loadEvent = new CustomEvent("ifcLoadEvent", {
-            detail: {
-              name: "openModel",
-              payload: {
-                name: "SharePointModel",
-                buffer: event.data,
-              },
-            },
-          });
-          window.dispatchEvent(loadEvent);
-        }
-      } catch (error) {
-        console.error("Error processing message:", error);
-      }
-    });
-
-    window.addEventListener("ifcLoadEvent", async (event: any) => {
-      try {
-        const { name, payload } = event.detail;
-        if (name === "openModel") {
-          console.log("Starting to load IFC model...");
-          const model = await ifcLoader.load(payload.buffer, payload.name);
-          world.scene.three.add(model);
-          console.log("IFC model loaded successfully");
-        }
-      } catch (error) {
-        console.error("Error loading IFC model:", error);
-      }
-    });
-
-    // Initialize fragment handlers
-    fragments.onFragmentsLoaded.add(async (model) => {
-      if (model.hasProperties) {
-        await indexer.process(model);
-        classifier.byEntity(model);
-      }
-
-      for (const fragment of model.items) {
-        world.meshes.add(fragment.mesh);
-        culler.add(fragment.mesh);
-      }
-
-      world.scene.three.add(model);
-      setTimeout(async () => {
-        world.camera.fit(world.meshes, 0.8);
-      }, 50);
-    });
-
-    fragments.onFragmentsDisposed.add(({ fragmentIDs }) => {
-      for (const fragmentID of fragmentIDs) {
-        const mesh = [...world.meshes].find((mesh) => mesh.uuid === fragmentID);
-        if (mesh) world.meshes.delete(mesh);
-      }
-    });
-
-    // Trigger initial resize
     window.dispatchEvent(new Event("resize"));
   } catch (error) {
     console.error("Application initialization error:", error);

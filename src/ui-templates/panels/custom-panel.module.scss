@@ -1,0 +1,33 @@
+.customPanel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    gap: 0.5rem;
+    border: 1px solid var(--bim-ui_bg-contrast-40);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: var(--bim-ui_bg-contrast-10);
+    pointer-events: auto;
+}
+
+.customPanelTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--bim-ui_bg-contrast-40);
+    padding-bottom: 0.5rem;
+}
+
+.customPanelContent {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}

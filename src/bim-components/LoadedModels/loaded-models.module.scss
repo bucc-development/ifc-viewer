@@ -1,0 +1,15 @@
+.models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 0.5rem 0.5rem 0.5rem;
+}
+
+.basil-button {
+    background-color: var(--comp-basil);
+    --bim-ui_main-base: var(--comp-azure);
+
+    &:hover {
+        background-color: var(--bim-ui_main-base) !important;
+    }
+}
